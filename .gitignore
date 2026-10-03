@@ -1,0 +1,24 @@
+# AI-DLC
+/.aidlc/
+/.opencode/
+/aidlc/
+/AGENTS.md
+/opencode.json
+/opencode.jsonc
+
+# GitHub Spec Kit
+/.specify/
+/specs/
+
+# Kiro
+.kiro/
+/.kiro/
+
+# Codex
+/AGENTS.override.md
+
+# Other AI Tools
+AGENTS.md
+
+# macOS
+.DS_Store

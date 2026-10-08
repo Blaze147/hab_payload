@@ -101,6 +101,10 @@ aidlc/diagnostics/
 .kiro/
 /.kiro/
 
+# Koda
+.koda/
+/.koda/
+
 # Codex
 /AGENTS.override.md
 

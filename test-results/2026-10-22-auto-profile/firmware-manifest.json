@@ -1,0 +1,10 @@
+{
+  "ground_host": {
+    "file": ".pio/build/split_host_ground/firmware.uf2",
+    "sha256": "a04ec86b912b6c4b1fcac255b02e33149391e1dfab04ed56e7a6c5e874d369d0"
+  },
+  "ground_radio": {
+    "file": ".pio/build/split_radio/firmware.hex",
+    "sha256": "68884d338f8e79cba9f5b22173021d31c4a693fba5bd8004d5f9ce6e06d32d65"
+  }
+}

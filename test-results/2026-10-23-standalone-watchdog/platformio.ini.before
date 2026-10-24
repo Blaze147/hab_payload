@@ -1,0 +1,170 @@
+; PlatformIO Project Configuration File
+;
+;   Build options: build flags, source filter
+;   Upload options: custom upload port, speed and extra flags
+;   Library options: dependencies, extra library storages
+;   Advanced options: extra scripting
+;
+; Please visit documentation for the other options and examples
+; https://docs.platformio.org/page/projectconf.html
+
+[platformio]
+default_envs = split_radio, split_host
+
+[radio_board]
+platform = atmelavr
+board = lora32u4II
+framework = arduino
+monitor_speed = 115200
+lib_deps = sandeepmistry/LoRa@0.8.0
+build_src_filter = +<main.cpp>
+
+[env:transmitter]
+extends = radio_board
+build_flags = -D RADIO_TRANSMITTER
+upload_port = /dev/cu.usbmodem1401
+monitor_port = /dev/cu.usbmodem1401
+;Windows: upload_port = COM5
+;Windows: umonitor_port = COM5
+
+[env:receiver]
+extends = radio_board
+build_flags = -D RADIO_RECEIVER
+upload_port = /dev/cu.usbmodem1301
+monitor_port = /dev/cu.usbmodem1301
+;Windows: upload_port = COM4
+;Windows: umonitor_port = COM4
+; Native core tests: simulator is outside production source/library paths.
+[env:native]
+platform = native
+build_flags = -std=c++11 -Wall -Wextra
+build_src_filter = -<*>
+test_filter = test_native
+test_framework = unity
+test_build_src = no
+
+; Hardware test application is compiled only in these opt-in environments.
+[env:transmitter_test]
+extends = env:transmitter
+build_flags = -D RADIO_TRANSMITTER -D HARDWARE_TEST
+build_src_filter = +<main.cpp> +<hardware_test/>
+
+[env:receiver_test]
+extends = env:receiver
+build_flags = -D RADIO_RECEIVER -D HARDWARE_TEST
+build_src_filter = +<main.cpp> +<hardware_test/>
+
+[env:transmitter_bidirectional]
+extends = env:transmitter_test
+build_flags = -D RADIO_TRANSMITTER -D HARDWARE_TEST -D BIDIRECTIONAL
+
+[env:receiver_bidirectional]
+extends = env:receiver_test
+build_flags = -D RADIO_RECEIVER -D HARDWARE_TEST -D BIDIRECTIONAL
+
+; Integrated packet/link test: P0 counters plus real acquisition/handshake.
+[env:transmitter_link_test]
+extends = env:transmitter
+build_flags = -D RADIO_TRANSMITTER -D LINK_TEST
+build_src_filter = +<main.cpp> +<link_test/>
+
+[env:receiver_link_test]
+extends = env:receiver
+build_flags = -D RADIO_RECEIVER -D LINK_TEST
+build_src_filter = +<main.cpp> +<link_test/>
+
+; Split device: radio coprocessor + RP2040 policy/application host.
+[env:split_radio]
+extends = radio_board
+upload_port = /dev/cu.usbmodem1301
+monitor_port = /dev/cu.usbmodem1301
+build_flags = -D SPLIT_RADIO
+build_src_filter = -<*> +<split/radio_main.cpp>
+lib_ignore = LinkManager, MessageManager
+
+[env:split_host]
+platform = https://github.com/maxgerhardt/platform-raspberrypi.git#5d4561a05e3b212660ac6fdd3fbfb328d1988aa1
+board = waveshare_rp2040_zero
+framework = arduino
+board_build.core = earlephilhower
+lib_deps =
+ mikalhart/TinyGPSPlus@1.1.0
+ adafruit/Adafruit MAX31865 library@1.6.2
+ paulstoffregen/OneWire@2.3.8
+ milesburton/DallasTemperature@3.11.0
+ adafruit/DHT sensor library@1.4.6
+ adafruit/Adafruit NeoPixel@1.12.3
+; Balloon RP2040 USB serial 5303284748B66A1C, current hub location 0-1.2.
+; Re-identify by serial before uploading if USB connections change.
+upload_port = /dev/cu.usbmodem1201
+monitor_port = hwgrep://SER=5303284748B66A1C
+monitor_speed = 115200
+; Pace host bytes to avoid the observed large-command UART burst failures.
+build_flags = -D SPLIT_HOST -D RADIO_TRANSMITTER -D BOARD_UART_TX_GAP_US=250
+build_src_filter = -<*> +<split/host_main.cpp>
+
+[env:split_radio_test]
+extends = env:split_radio
+build_flags = -D SPLIT_RADIO -D SPLIT_DIAGNOSTICS
+
+[env:split_host_test]
+extends = env:split_host
+build_flags = -D SPLIT_HOST -D RADIO_TRANSMITTER -D SPLIT_DIAGNOSTICS
+
+; Unattended USB-regression experiments: loss of 'k' USB heartbeats returns
+; the balloon to ROM BOOTSEL after eight seconds. Never use as flight firmware.
+[env:split_host_usb_probe]
+extends = env:split_host
+build_flags = -D SPLIT_HOST -D RADIO_TRANSMITTER -D USB_RECOVERY_DIAGNOSTIC
+
+[env:usb_only_probe]
+extends = env:split_host_usb_probe
+build_src_filter = -<*> +<split/usb_probe_main.cpp>
+lib_deps =
+
+[env:usb_multicore_probe]
+extends = env:usb_only_probe
+build_flags = -D SPLIT_HOST -D RADIO_TRANSMITTER -D USB_RECOVERY_DIAGNOSTIC -D USB_PROBE_CORE1
+
+[env:split_host_usb_tinyusb]
+extends = env:split_host_usb_probe
+build_flags = -D SPLIT_HOST -D RADIO_TRANSMITTER -D USB_RECOVERY_DIAGNOSTIC -D USE_TINYUSB
+
+; Shared host runtime with a separate ground application (no balloon sensors).
+[env:split_host_ground]
+extends = env:split_host
+; Ground RP2040 USB serial 503359276A727B9F, current hub port.
+upload_port = /dev/cu.usbmodem1401
+monitor_port = hwgrep://SER=503359276A727B9F
+lib_deps = adafruit/Adafruit NeoPixel@1.12.3
+build_flags = -D SPLIT_HOST -D RADIO_RECEIVER
+
+; Sensor isolation experiment; retains the same USB watchdog and radio runtime.
+[env:split_host_gps_only]
+extends = env:split_host_usb_tinyusb
+build_flags = -D SPLIT_HOST -D RADIO_TRANSMITTER -D USB_RECOVERY_DIAGNOSTIC -D USE_TINYUSB -D BENCH_GPS_ONLY
+
+; Identical GPS-only activity with an explicitly opaque 44-byte bench payload.
+[env:split_host_gps_padded]
+extends = env:split_host_gps_only
+build_flags = -D SPLIT_HOST -D RADIO_TRANSMITTER -D USB_RECOVERY_DIAGNOSTIC -D USE_TINYUSB -D BENCH_GPS_ONLY -D BENCH_PADDED_TELEMETRY
+
+; Full sensor activity, but only GPS records enter the telemetry payload.
+[env:split_host_sensors_gps_payload]
+extends = env:split_host_usb_tinyusb
+build_flags = -D SPLIT_HOST -D RADIO_TRANSMITTER -D USB_RECOVERY_DIAGNOSTIC -D USE_TINYUSB -D BENCH_GPS_PAYLOAD
+
+; Same full sensor/payload workload with slower UART byte pacing, same baud.
+[env:split_host_uart_paced]
+extends = env:split_host_usb_tinyusb
+build_flags = -D SPLIT_HOST -D RADIO_TRANSMITTER -D USB_RECOVERY_DIAGNOSTIC -D USE_TINYUSB -D BOARD_UART_TX_GAP_US=250
+
+; Exact 44-byte transport control with paced UART and only GPS sensor reads.
+[env:split_host_gps_padded_paced]
+extends = env:split_host_gps_padded
+build_flags = -D SPLIT_HOST -D RADIO_TRANSMITTER -D USB_RECOVERY_DIAGNOSTIC -D USE_TINYUSB -D BENCH_GPS_ONLY -D BENCH_PADDED_TELEMETRY -D BOARD_UART_TX_GAP_US=250
+
+; Bounded full-load RF run continues after USB loss; ROM recovery by ~188 s.
+[env:split_host_uart_paced_bounded]
+extends = env:split_host_uart_paced
+build_flags = -D SPLIT_HOST -D RADIO_TRANSMITTER -D USB_RECOVERY_DIAGNOSTIC -D USE_TINYUSB -D BOARD_UART_TX_GAP_US=250 -D USB_RECOVERY_AUTONOMOUS_MS=180000

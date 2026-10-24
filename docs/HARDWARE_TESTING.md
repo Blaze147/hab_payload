@@ -17,14 +17,20 @@
 
 ## Build and upload
 
-Hardware tests are opt-in. Default `transmitter` and `receiver` builds initialize
-RadioManager and stay idle; they contain no hardware test application or test
-payload buffer. Plain `pio run` builds only these two default environments.
-Select an explicit environment below to compile and upload test behavior.
-The native simulator/tests remain host-only.
+Payload-generating hardware tests are opt-in. Default `transmitter` and
+`receiver` builds run the link runtime (including beacons/control), but generate
+no test counters. For the integrated counter/acquisition/handshake test use
+`transmitter_link_test` and `receiver_link_test`; see
+[LINK_TEST.md](LINK_TEST.md) for the procedure and software results.
+
+The older four environments below exercise RadioManager directly and bypass
+ProtocolManager, MessageManager and LinkManager. They remain useful for isolating
+hardware faults but do not test the integrated stack. Ports in these legacy
+examples are Windows examples; use your actual ports (the project currently has
+Mac USB modem paths configured). The native simulator/tests remain host-only.
 
 
-| Device / mode | Environment | Default port |
+| Device / mode | Environment | Example Windows port |
 | --- | --- | --- |
 | Balloon one-way | transmitter_test | COM5 |
 | Ground one-way | receiver_test | COM4 |
@@ -80,7 +86,9 @@ completion. For a finite run append `-D TEST_PACKET_LIMIT=10UL` or `1000UL` to
 transmitter_test build_flags, preserving its role and HARDWARE_TEST flags. Append `-D TEST_PROFILE=1`
 to BOTH environments for P1, and optionally `-D TEST_INTERVAL_MS=10000UL` to
 transmitter. For exchange preserve `-D BIDIRECTIONAL` too. Rebuild/upload both
-after changing profiles. Exact alternative settings live in `profile()` in
+after changing profiles. TEST_PROFILE accepts 0 through 4. The former test P1 (SF9/4/5) is now P2;
+P1 now means SF10/4/6. Exact settings are defined by `lib/LinkManager/src/LinkProfiles.h`;
+the test selection lives in `profile()` in
 src/hardware_test/HardwareTestApp.cpp; align both radios when modifying them. These test controls require
 no changes to RadioManager. Profile selection remains manual in Stage 1.
 P0 six-byte airtime is approximately 1.19 seconds; total 1,000-packet run is

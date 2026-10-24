@@ -38,7 +38,12 @@ public:
  radio::Status read(uint8_t* p,size_t capacity,radio::PacketInfo& info) override {
   if(reg(0x42)!=0x12) return radio::Status::HardwareError;
   if(!pending_.length) {
-   if(!(reg(0x12)&0x40)) return radio::Status::NoPacket;
+   const uint8_t irq=reg(0x12);
+   if(!(irq&0x40)) return radio::Status::NoPacket;
+   if(irq&0x20) { // RX_DONE + PAYLOAD_CRC_ERROR: bytes cannot be trusted.
+    info.length=reg(0x13); info.rssi=LoRa.packetRssi(); info.snr=LoRa.packetSnr();
+    reg(0x12,0x60,true); LoRa.receive(); return radio::Status::CrcError;
+   }
    int n=LoRa.parsePacket();
    if(n<=0) { LoRa.receive(); return radio::Status::InvalidPayload; }
    pending_.length=n; pending_.rssi=LoRa.packetRssi(); pending_.snr=LoRa.packetSnr();

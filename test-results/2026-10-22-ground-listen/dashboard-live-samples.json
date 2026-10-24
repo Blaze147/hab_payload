@@ -1,0 +1,126 @@
+[
+  {
+    "connected": true,
+    "port": "/dev/cu.usbmodem1201",
+    "sample": {
+      "status": "FIX",
+      "lat": 39.563672,
+      "lon": -105.016772,
+      "alt_m": 1723.2,
+      "sats": 12,
+      "speed_kmh": null,
+      "pps": null,
+      "utc": null
+    },
+    "received_at": 1792726775.777856,
+    "environment": {
+      "status": "UNAVAILABLE",
+      "c": null,
+      "humidity_pct": null
+    },
+    "environment_received_at": 1792726775.777856,
+    "source": "ground",
+    "telemetry": {
+      "session": 7405,
+      "message": 354,
+      "balloon_uptime_ms": 3536648,
+      "flags": 15,
+      "payload_hex": "48414254010f00000035f708025bb198f9bd923c00004350000000000000000c"
+    },
+    "received_messages": 7,
+    "error": null,
+    "radio": {
+      "connected": "1",
+      "state": "2",
+      "phase": "2",
+      "established": "1",
+      "conversation": "0",
+      "dataProfile": "P0",
+      "missed": "0",
+      "linkResult": "0",
+      "rx": "81",
+      "radioErrors": "0",
+      "timeouts": "0",
+      "bad": "0",
+      "eventGaps": "0",
+      "overflow": "0",
+      "clockUncertaintyMs": "5",
+      "messages": "62",
+      "rssi": "-44",
+      "snr": "9.25",
+      "p0Packets": "81",
+      "p0Data": "62",
+      "p0Corrupt": "0",
+      "p0Malformed": "0"
+    },
+    "camera": null,
+    "age_seconds": 7.62297797203064,
+    "environment_age_seconds": 7.62297797203064,
+    "freshness_seconds": {
+      "gps": 60,
+      "environment": 60
+    }
+  },
+  {
+    "connected": true,
+    "port": "/dev/cu.usbmodem1201",
+    "sample": {
+      "status": "FIX",
+      "lat": 39.56367,
+      "lon": -105.016773,
+      "alt_m": 1721.8,
+      "sats": 11,
+      "speed_kmh": null,
+      "pps": null,
+      "utc": null
+    },
+    "received_at": 1792726784.0625432,
+    "environment": {
+      "status": "OK",
+      "c": 25.7,
+      "humidity_pct": 40.6
+    },
+    "environment_received_at": 1792726784.0625432,
+    "source": "ground",
+    "telemetry": {
+      "session": 7405,
+      "message": 355,
+      "balloon_uptime_ms": 3544933,
+      "flags": 31,
+      "payload_hex": "48414254011f000000361765025bb196f9bd923b00004342010101960000000b"
+    },
+    "received_messages": 8,
+    "error": null,
+    "radio": {
+      "connected": "1",
+      "state": "2",
+      "phase": "2",
+      "established": "1",
+      "conversation": "0",
+      "dataProfile": "P0",
+      "missed": "0",
+      "linkResult": "0",
+      "rx": "81",
+      "radioErrors": "0",
+      "timeouts": "0",
+      "bad": "0",
+      "eventGaps": "0",
+      "overflow": "0",
+      "clockUncertaintyMs": "5",
+      "messages": "62",
+      "rssi": "-44",
+      "snr": "9.25",
+      "p0Packets": "81",
+      "p0Data": "62",
+      "p0Corrupt": "0",
+      "p0Malformed": "0"
+    },
+    "camera": null,
+    "age_seconds": 1.3520448207855225,
+    "environment_age_seconds": 1.3520448207855225,
+    "freshness_seconds": {
+      "gps": 60,
+      "environment": 60
+    }
+  }
+]

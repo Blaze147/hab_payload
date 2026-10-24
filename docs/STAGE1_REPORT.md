@@ -75,3 +75,6 @@ and six native test groups passed after this separation. Default ELF symbol
 inspection found no hardware_test symbols, test buffer or counter. Default builds
 use 497 bytes static SRAM; no test packets are sent. Recovery retries described
 above apply to the optional test application only.
+
+Historical profile note: the original test P1 above was subsequently renamed
+P2 (SF9/4/5). The current P1 is SF10/4/6; see ProtocolManager.md.

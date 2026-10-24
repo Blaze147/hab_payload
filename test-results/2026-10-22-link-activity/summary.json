@@ -1,0 +1,44 @@
+{
+  "observed_types": {
+    "data": 24,
+    "window": 16,
+    "beacon": 6,
+    "control": 10
+  },
+  "observed_control_flags": [
+    1,
+    2,
+    3
+  ],
+  "directions": [
+    "rx",
+    "tx"
+  ],
+  "profiles": [
+    "P0",
+    "P1",
+    "P2"
+  ],
+  "final_profile": "P4",
+  "final_radio_errors": {
+    "radioErrors": "0",
+    "timeouts": "0",
+    "bad": "0",
+    "eventGaps": "0",
+    "overflow": "0",
+    "missed": "0"
+  },
+  "final_activity_gaps": 0,
+  "firmware_sha256": "aab599be910dd256dffe4b3e11f62143ecfc95fd75190ddf55a5e82c6d511b61",
+  "raw_packet_profiles": [
+    "P0",
+    "P1",
+    "P2",
+    "P3",
+    "P4"
+  ],
+  "raw_packet_types": {
+    "control": 26,
+    "data": 51
+  }
+}

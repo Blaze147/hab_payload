@@ -3,7 +3,7 @@
 #include <stddef.h>
 namespace radio {
 constexpr size_t MaxPayload = 255;
-enum class Status : uint8_t { Ok, NotInitialized, InvalidConfig, InvalidPayload, Busy, NoPacket, BufferTooSmall, HardwareError, Timeout };
+enum class Status : uint8_t { Ok, NotInitialized, InvalidConfig, InvalidPayload, Busy, NoPacket, BufferTooSmall, HardwareError, Timeout, CrcError };
 enum class State : uint8_t { Uninitialized, Idle, Receiving, Transmitting, Fault };
 enum class TxStatus : uint8_t { None, InProgress, Complete, Failed };
 struct Config {
@@ -16,7 +16,14 @@ struct Config {
  bool crc = true;
  uint8_t syncWord = 0x12;
 };
-struct PacketInfo { size_t length = 0; int16_t rssi = 0; float snr = 0; };
+struct PacketInfo {
+ size_t length = 0; int16_t rssi = 0; float snr = 0;
+ uint32_t receivedAtMs = 0;
+ // Raw receive settings, not named-profile policy. Stamped by RadioManager.
+ bool hasModulation = false;
+ uint8_t spreadingFactor = 0, codingRate = 0;
+ uint32_t bandwidth = 0;
+};
 // All adapters use explicit headers, normal IQ, PA_BOOST. No remote delivery status.
 class Adapter {
 public:
@@ -40,7 +47,7 @@ public:
  Status receive();
  Status transmit(const uint8_t*, size_t, uint32_t nowMs);
  Status poll(uint32_t nowMs); // Call regularly. Wrap-safe unsigned millisecond clock.
- Status read(uint8_t*, size_t, PacketInfo&);
+ Status read(uint8_t*, size_t, PacketInfo&, uint32_t nowMs = 0);
  State state() const { return state_; }
  TxStatus transmission() const { return tx_; }
  const Config& config() const { return config_; }

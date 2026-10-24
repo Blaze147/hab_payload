@@ -1,0 +1,38 @@
+{"elapsed_s": 0.008, "line": "ENV READ_ERROR c=NA humidity_pct=NA sensor=DHT22 pin=7 sequence=253"}
+{"elapsed_s": 0.008, "line": "RTD OK c=23.09 f=73.55 resistance_ohm=109.337 raw=8332 fault=0x00 sensor=MAX31865 wires=2 cs=13 rref_ohm=430 uncorrected_c=23.98 offset_c=-0.89 sequence=529"}
+{"elapsed_s": 0.78, "line": "RTD OK c=23.09 f=73.55 resistance_ohm=109.337 raw=8332 fault=0x00 sensor=MAX31865 wires=2 cs=13 rref_ohm=430 uncorrected_c=23.98 offset_c=-0.89 sequence=530"}
+{"elapsed_s": 1.243, "line": "ENV OK c=27.2 humidity_pct=25.4 sensor=DHT22 pin=7 sequence=254"}
+{"elapsed_s": 1.779, "line": "RTD OK c=23.05 f=73.49 resistance_ohm=109.324 raw=8331 fault=0x00 sensor=MAX31865 wires=2 cs=13 rref_ohm=430 uncorrected_c=23.94 offset_c=-0.89 sequence=531"}
+{"elapsed_s": 2.781, "line": "RTD OK c=23.05 f=73.49 resistance_ohm=109.324 raw=8331 fault=0x00 sensor=MAX31865 wires=2 cs=13 rref_ohm=430 uncorrected_c=23.94 offset_c=-0.89 sequence=532"}
+{"elapsed_s": 3.342, "line": "ENV READ_ERROR c=NA humidity_pct=NA sensor=DHT22 pin=7 sequence=255"}
+{"elapsed_s": 3.85, "line": "RTD OK c=23.05 f=73.49 resistance_ohm=109.324 raw=8331 fault=0x00 sensor=MAX31865 wires=2 cs=13 rref_ohm=430 uncorrected_c=23.94 offset_c=-0.89 sequence=533"}
+{"elapsed_s": 4.688, "line": "INTERNAL_TEMP OK c=22.00 f=71.60 sensor=DS18B20 pin=26 resolution_bits=12 devices=1 rom=285FE4D500000051 idle_high=1 presence=1 sequence=331"}
+{"elapsed_s": 4.85, "line": "RTD OK c=23.05 f=73.49 resistance_ohm=109.324 raw=8331 fault=0x00 sensor=MAX31865 wires=2 cs=13 rref_ohm=430 uncorrected_c=23.94 offset_c=-0.89 sequence=534"}
+{"elapsed_s": 5.443, "line": "ENV OK c=27.2 humidity_pct=25.3 sensor=DHT22 pin=7 sequence=256"}
+{"elapsed_s": 5.704, "line": "INTERNAL_TEMP OK c=22.00 f=71.60 sensor=DS18B20 pin=26 resolution_bits=12 devices=1 rom=285FE4D500000051 idle_high=1 presence=1 sequence=332"}
+{"elapsed_s": 5.849, "line": "RTD OK c=23.05 f=73.49 resistance_ohm=109.324 raw=8331 fault=0x00 sensor=MAX31865 wires=2 cs=13 rref_ohm=430 uncorrected_c=23.94 offset_c=-0.89 sequence=535"}
+{"elapsed_s": 5.911, "line": "INTERNAL_TEMP REQUEST_ERROR c=NA f=NA sensor=DS18B20 pin=26 resolution_bits=12 devices=1 rom=285FE4D500000051 idle_high=1 presence=1 sequence=333"}
+{"elapsed_s": 6.849, "line": "RTD OK c=23.09 f=73.55 resistance_ohm=109.337 raw=8332 fault=0x00 sensor=MAX31865 wires=2 cs=13 rref_ohm=430 uncorrected_c=23.98 offset_c=-0.89 sequence=536"}
+{"elapsed_s": 7.543, "line": "ENV OK c=27.2 humidity_pct=25.3 sensor=DHT22 pin=7 sequence=257"}
+{"elapsed_s": 7.85, "line": "RTD OK c=23.05 f=73.49 resistance_ohm=109.324 raw=8331 fault=0x00 sensor=MAX31865 wires=2 cs=13 rref_ohm=430 uncorrected_c=23.94 offset_c=-0.89 sequence=537"}
+{"elapsed_s": 8.849, "line": "RTD OK c=23.05 f=73.49 resistance_ohm=109.324 raw=8331 fault=0x00 sensor=MAX31865 wires=2 cs=13 rref_ohm=430 uncorrected_c=23.94 offset_c=-0.89 sequence=538"}
+{"elapsed_s": 9.643, "line": "ENV OK c=27.2 humidity_pct=25.3 sensor=DHT22 pin=7 sequence=258"}
+{"elapsed_s": 9.849, "line": "RTD OK c=23.05 f=73.49 resistance_ohm=109.324 raw=8331 fault=0x00 sensor=MAX31865 wires=2 cs=13 rref_ohm=430 uncorrected_c=23.94 offset_c=-0.89 sequence=539"}
+{"elapsed_s": 10.849, "line": "RTD OK c=23.05 f=73.49 resistance_ohm=109.324 raw=8331 fault=0x00 sensor=MAX31865 wires=2 cs=13 rref_ohm=430 uncorrected_c=23.94 offset_c=-0.89 sequence=540"}
+{"elapsed_s": 11.743, "line": "ENV OK c=27.2 humidity_pct=25.3 sensor=DHT22 pin=7 sequence=259"}
+{"elapsed_s": 11.849, "line": "RTD OK c=23.02 f=73.43 resistance_ohm=109.311 raw=8330 fault=0x00 sensor=MAX31865 wires=2 cs=13 rref_ohm=430 uncorrected_c=23.91 offset_c=-0.89 sequence=541"}
+{"elapsed_s": 11.862, "line": "INTERNAL_TEMP OK c=22.00 f=71.60 sensor=DS18B20 pin=26 resolution_bits=12 devices=1 rom=285FE4D500000051 idle_high=1 presence=1 sequence=334"}
+{"elapsed_s": 12.849, "line": "RTD OK c=23.05 f=73.49 resistance_ohm=109.324 raw=8331 fault=0x00 sensor=MAX31865 wires=2 cs=13 rref_ohm=430 uncorrected_c=23.94 offset_c=-0.89 sequence=542"}
+{"elapsed_s": 12.863, "line": "INTERNAL_TEMP OK c=22.00 f=71.60 sensor=DS18B20 pin=26 resolution_bits=12 devices=1 rom=285FE4D500000051 idle_high=1 presence=1 sequence=335"}
+{"elapsed_s": 13.849, "line": "RTD OK c=23.05 f=73.49 resistance_ohm=109.324 raw=8331 fault=0x00 sensor=MAX31865 wires=2 cs=13 rref_ohm=430 uncorrected_c=23.94 offset_c=-0.89 sequence=543"}
+{"elapsed_s": 13.863, "line": "INTERNAL_TEMP OK c=21.94 f=71.49 sensor=DS18B20 pin=26 resolution_bits=12 devices=1 rom=285FE4D500000051 idle_high=1 presence=1 sequence=336"}
+{"elapsed_s": 13.869, "line": "ENV OK c=27.2 humidity_pct=25.3 sensor=DHT22 pin=7 sequence=260"}
+{"elapsed_s": 14.849, "line": "RTD OK c=23.02 f=73.43 resistance_ohm=109.311 raw=8330 fault=0x00 sensor=MAX31865 wires=2 cs=13 rref_ohm=430 uncorrected_c=23.91 offset_c=-0.89 sequence=544"}
+{"elapsed_s": 14.881, "line": "INTERNAL_TEMP OK c=21.94 f=71.49 sensor=DS18B20 pin=26 resolution_bits=12 devices=1 rom=285FE4D500000051 idle_high=1 presence=1 sequence=337"}
+{"elapsed_s": 15.849, "line": "RTD OK c=23.05 f=73.49 resistance_ohm=109.324 raw=8331 fault=0x00 sensor=MAX31865 wires=2 cs=13 rref_ohm=430 uncorrected_c=23.94 offset_c=-0.89 sequence=545"}
+{"elapsed_s": 15.903, "line": "INTERNAL_TEMP OK c=22.00 f=71.60 sensor=DS18B20 pin=26 resolution_bits=12 devices=1 rom=285FE4D500000051 idle_high=1 presence=1 sequence=338"}
+{"elapsed_s": 15.968, "line": "ENV OK c=27.2 humidity_pct=25.2 sensor=DHT22 pin=7 sequence=261"}
+{"elapsed_s": 16.863, "line": "RTD OK c=23.05 f=73.49 resistance_ohm=109.324 raw=8331 fault=0x00 sensor=MAX31865 wires=2 cs=13 rref_ohm=430 uncorrected_c=23.94 offset_c=-0.89 sequence=546"}
+{"elapsed_s": 16.922, "line": "INTERNAL_TEMP OK c=22.00 f=71.60 sensor=DS18B20 pin=26 resolution_bits=12 devices=1 rom=285FE4D500000051 idle_high=1 presence=1 sequence=339"}
+{"elapsed_s": 17.849, "line": "RTD OK c=23.05 f=73.49 resistance_ohm=109.324 raw=8331 fault=0x00 sensor=MAX31865 wires=2 cs=13 rref_ohm=430 uncorrected_c=23.94 offset_c=-0.89 sequence=547"}
+{"elapsed_s": 17.943, "line": "INTERNAL_TEMP OK c=22.00 f=71.60 sensor=DS18B20 pin=26 resolution_bits=12 devices=1 rom=285FE4D500000051 idle_high=1 presence=1 sequence=340"}

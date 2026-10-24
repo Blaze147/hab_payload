@@ -25,7 +25,7 @@ public:
  Channel& channel;
  Config settings;
  State mode=State::Uninitialized;
- bool available=true, failConfig=false, failTx=false, stuck=false;
+ bool available=true, failConfig=false, failTx=false, stuck=false, crcError=false;
  uint32_t epoch=0, finish=0;
  TxStatus tx=TxStatus::None;
  std::vector<uint8_t> sending, pending;
@@ -48,7 +48,9 @@ public:
  Status read(uint8_t* p,size_t capacity,PacketInfo& info) override {
   if(!available) return Status::HardwareError;
   if(pending.empty()) return Status::NoPacket;
-  info=measurement; if(capacity<pending.size()) return Status::BufferTooSmall;
+  info=measurement;
+  if(crcError) { pending.clear(); crcError=false; return Status::CrcError; }
+  if(capacity<pending.size()) return Status::BufferTooSmall;
   std::copy(pending.begin(),pending.end(),p); pending.clear(); return Status::Ok;
  }
 };

@@ -1,0 +1,28 @@
+{
+  "ENV": {
+    "latest_c": 27.2,
+    "latest_f": 80.96,
+    "elapsed_s": 15.968,
+    "valid_samples": 7,
+    "min_c": 27.2,
+    "max_c": 27.2
+  },
+  "INTERNAL_TEMP": {
+    "latest_c": 22.0,
+    "latest_f": 71.6,
+    "elapsed_s": 17.943,
+    "valid_samples": 9,
+    "min_c": 21.94,
+    "max_c": 22.0
+  },
+  "RTD": {
+    "latest_c": 23.05,
+    "latest_f": 73.49,
+    "elapsed_s": 17.849,
+    "valid_samples": 19,
+    "min_c": 23.02,
+    "max_c": 23.09,
+    "uncorrected_c": 23.94,
+    "offset_c": -0.89
+  }
+}

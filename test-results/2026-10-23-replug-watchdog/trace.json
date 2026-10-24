@@ -1,0 +1,11 @@
+{
+  "watchdog_reason": 1,
+  "recovery_stage": 9,
+  "core0_stage": 30,
+  "core1_stage": 205,
+  "forced_halt_marker": "0x0",
+  "purple_callback_completed": 1,
+  "core0_last_ms": 7989,
+  "core1_last_ms": 8001,
+  "usb_last_sof_change_ms": 7988
+}

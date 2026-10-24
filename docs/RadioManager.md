@@ -7,10 +7,13 @@ Both firmware roles use exactly the same manager implementation.
 
 ## Configuration
 
-Config defaults define provisional P0: 915 MHz, SF12, 125 kHz bandwidth,
+Config defaults define P0: 915 MHz, SF12, 125 kHz bandwidth,
 4/8 coding, 17 dBm PA_BOOST, eight-symbol preamble, CRC enabled, sync word 0x12,
-explicit header and normal IQ. P1 uses SF9 and 4/5; other settings match P0.
-These are test profiles, not measured claims of optimal reliability.
+explicit header and normal IQ. P1 uses SF10 and 4/6; P2 uses SF9 and 4/5; P3 uses SF8/BW250k/4/5;
+P4 uses SF7/BW500k/4/5. Named definitions live in LinkManager/src/LinkProfiles.h; LinkManager owns
+profile policy. RadioManager only handles raw configuration.
+P0 is the default and intended recovery fallback. Automatic fallback and
+negotiation are implemented above this layer in LinkManager; see ProtocolManager.md for the profile table.
 The original code specified only 915 MHz; it relied on library defaults for
 modulation. Those defaults are deliberately replaced by explicit P0 settings
 and CRC for this stage. Original pins CS8/reset4/DIO0=7 are preserved.
@@ -77,9 +80,11 @@ parsePacket so empty polls do not switch the chip from continuous RX to single R
 No custom ISR or dependency on DIO0 interrupt wiring is introduced. Recheck this
 bridge if upgrading the library. Configuration setters return void; their success
 cannot be verified by the public library. Version checks detect some bus/device
-failures; arbitrary RF failures cannot be detected. CRC-corrupted/empty RX packets
-are rejected, but the public parse API cannot distinguish the two, so they report
-InvalidPayload when observed. Nothing here proves physical RF functionality.
+failures; arbitrary RF failures cannot be detected. The bridge inspects hardware CRC-error IRQ flags before parsing, returning
+CrcError with metadata for that case. Other empty/invalid parse results report
+InvalidPayload. The initial physical P0 run is documented in
+../test-results/2026-10-21-p0-hardware/REPORT.md; deliberate hardware CRC/fault
+injection and extended RF validation remain pending.
 
 ## Deterministic simulator
 
@@ -101,10 +106,23 @@ vectors; no simulation headers or heap allocations enter firmware.
 
 ## Application separation
 
-`src/main.cpp` is a small entry point. The default transmitter/receiver firmware
-initializes the manager and stays idle, with no test transmissions, receive
-printing or test recovery policy. It is a Stage 1 foundation, not the future
-telemetry application. `src/hardware_test/HardwareTestApp.cpp` contains all test
+`src/main.cpp` initializes the radio and role-aware LinkManager runtime. Default
+firmware now performs acquisition beacons and P0 control exchanges; it creates no
+synthetic application messages. See LinkManager.md for its behavior.
+`src/hardware_test/HardwareTestApp.cpp` contains all test
 payload generation, intervals, diagnostics, exchange sequencing and retries.
 Only explicit test environments include that source via build_src_filter and
 define HARDWARE_TEST. Native tests remain separate from every embedded build.
+
+
+## Receive metadata
+
+`read()` accepts an optional caller timestamp and stamps successful receive
+metadata with that timestamp and the current SF/bandwidth/coding rate. These are
+raw settings, not named profiles; classification remains above the radio layer.
+RSSI/SNR and wire length come from the adapter. `CrcError` identifies a hardware
+CRC rejection with metadata but no trusted packet bytes. The physical adapter
+checks the RX_DONE/PAYLOAD_CRC_ERROR IRQ flags before the driver's parser clears
+them. Native tests cover simulated rejection; physical measurements remain to be
+validated. `BufferTooSmall` also preserves and reports the pending metadata;
+re-reading can produce a later caller timestamp, so this is a poll/read time.

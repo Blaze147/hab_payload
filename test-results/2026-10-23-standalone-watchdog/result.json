@@ -1,0 +1,7 @@
+{
+  "duration_seconds": 180,
+  "heartbeat_commands_sent": 0,
+  "fault_commands_sent": 0,
+  "monitor_closed_at_seconds": 15,
+  "unexpected_bootsel": false
+}

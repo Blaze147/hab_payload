@@ -1,0 +1,118 @@
+{
+  "duration_seconds": 420,
+  "host_samples": 210,
+  "rf_messages_captured": 52,
+  "profiles": {
+    "P0": {
+      "first_agreement_status_s": 200.19,
+      "first_data_phase_status_s": 156.03,
+      "airtime_goodput_Bps": 9.74,
+      "captured_messages": 24,
+      "first_message": "900",
+      "last_message": "923",
+      "instance_ids": [
+        "1"
+      ]
+    },
+    "P1": {
+      "first_agreement_status_s": 240.21,
+      "first_data_phase_status_s": 244.05,
+      "airtime_goodput_Bps": 48.63,
+      "captured_messages": 6,
+      "first_message": "924",
+      "last_message": "929",
+      "instance_ids": [
+        "2"
+      ]
+    },
+    "P2": {
+      "first_agreement_status_s": 280.19,
+      "first_data_phase_status_s": 284.07,
+      "airtime_goodput_Bps": 103.56,
+      "captured_messages": 6,
+      "first_message": "930",
+      "last_message": "935",
+      "instance_ids": [
+        "3"
+      ]
+    },
+    "P3": {
+      "first_agreement_status_s": 320.23,
+      "first_data_phase_status_s": 324.15,
+      "airtime_goodput_Bps": 363.64,
+      "captured_messages": 6,
+      "first_message": "936",
+      "last_message": "941",
+      "instance_ids": [
+        "4"
+      ]
+    },
+    "P4": {
+      "first_agreement_status_s": 360.19,
+      "first_data_phase_status_s": 364.08,
+      "airtime_goodput_Bps": 1333.33,
+      "captured_messages": 10,
+      "first_message": "942",
+      "last_message": "951",
+      "instance_ids": [
+        "5"
+      ]
+    }
+  },
+  "host_error_maxima": {
+    "radioErrors": 0,
+    "timeouts": 0,
+    "bad": 0,
+    "eventGaps": 0,
+    "overflow": 0,
+    "missed": 0
+  },
+  "radio_bad_range": [
+    1,
+    1
+  ],
+  "radio_rejected_max": 0,
+  "final_status": {
+    "at": 418.08,
+    "connected": "1",
+    "state": "2",
+    "phase": "2",
+    "established": "1",
+    "conversation": "0",
+    "probing": "0",
+    "probeReason": "0",
+    "peakAirtimeGoodputBps": "1333.33",
+    "probeNegotiating": "0",
+    "degradedDataWindows": "0",
+    "silentDataWindows": "0",
+    "failedProbeWindows": "0",
+    "dataProfile": "P4",
+    "profileInstance": "5",
+    "wallGoodputBps": "4.41",
+    "airtimeGoodputBps": "1333.33",
+    "recentPackets": "4",
+    "instanceWallGoodputBps": "5.31",
+    "instanceAirtimeGoodputBps": "1333.33",
+    "recentMeanRssi": "-38.75",
+    "recentMeanSnr": "6.19",
+    "instanceMeanRssi": "-38.56",
+    "instanceMeanSnr": "6.00",
+    "missed": "0",
+    "linkResult": "0",
+    "rx": "65",
+    "radioErrors": "0",
+    "timeouts": "0",
+    "bad": "0",
+    "eventGaps": "0",
+    "overflow": "0",
+    "clockUncertaintyMs": "6",
+    "messages": "53",
+    "rssi": "-39",
+    "snr": "6.00",
+    "p0Packets": "8",
+    "p0Data": "8",
+    "p0Corrupt": "0",
+    "p0Malformed": "0"
+  },
+  "captured_message_id_gaps": []
+}

@@ -1,0 +1,25 @@
+#include <Arduino.h>
+#include "UsbRecoveryDiagnostic.h"
+void initVariant() { usb_recovery_diagnostic::begin(); }
+void setup() {
+ Serial.begin(115200);
+}
+void loop() {
+ usb_recovery_diagnostic::stage(301);
+ if(Serial.available()) {
+  char c=Serial.read();
+  if(c=='k') {watchdog_update();Serial.println("USB_HEARTBEAT");}
+ }
+ static uint32_t at=0;
+ if(Serial && millis()-at>=1000) {at=millis();Serial.print("USB_ONLY uptime=");Serial.println(at);}
+#ifdef USB_PROBE_CORE1
+ static const char flood[]="USB_STRESS AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\r\n";
+ if(Serial && Serial.availableForWrite()>=int(sizeof(flood)-1)) Serial.write(flood,sizeof(flood)-1);
+#endif
+ delay(1);
+}
+#ifdef USB_PROBE_CORE1
+bool core1_separate_stack=true;
+void setup1() {if(usb_recovery_diagnostic::recovering)return;usb_recovery_diagnostic::stage(101);delay(2000);usb_recovery_diagnostic::stage(102);}
+void loop1() {if(usb_recovery_diagnostic::recovering)return;usb_recovery_diagnostic::stage(201);delay(1);}
+#endif

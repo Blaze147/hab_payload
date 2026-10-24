@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-21",
+  "timezone": "America/Denver",
+  "ports": {
+    "ground": "/dev/cu.usbmodem1301",
+    "balloon": "/dev/cu.usbmodem1401"
+  },
+  "usb": "239A:800C Feather 32u4",
+  "profile": "P0: SF12/BW125kHz/CR4/8, 915MHz",
+  "groundEnvironment": "receiver_link_test",
+  "balloonEnvironment": "transmitter_link_test",
+  "groundImageSha256": "13fa02333599f02baa68ec86d6746447580488e28d90ec96597c813e10a3299b",
+  "balloonImageSha256": "e91b86e232e882bdb82a6bce69846edf465d33415801a01f35b2f3c8e886946b",
+  "workingTree": true,
+  "baseCommit": "535e5166e9db305d012c8caeb945b1ee1ea7d503",
+  "antennaReadinessConfirmedByUser": true
+}

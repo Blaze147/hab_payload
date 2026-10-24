@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Payload · Live Telemetry</title>
+  <link rel="stylesheet" href="/vendor/leaflet.css">
+  <style>
+    *{box-sizing:border-box} body{margin:0;font:14px system-ui,sans-serif;color:#172d39;background:#ecf0f0}
+    header{height:72px;padding:0 28px;display:flex;align-items:center;justify-content:space-between;background:#142b38;color:white}
+    .brand{font-size:18px;letter-spacing:2px;font-weight:750}.brand span{color:#7cd9ba}.subtitle{color:#b0c2ca;font-size:12px;margin-top:3px;letter-spacing:.3px}
+    .live{display:flex;gap:8px;align-items:center;font-size:12px}.dot{width:8px;height:8px;border-radius:50%;background:#e4b65a}.live.ok .dot{background:#65deb4}
+    main{height:calc(100dvh - 72px);position:relative}#map{height:100%;width:100%;z-index:0}
+    .panels{position:absolute;left:24px;top:24px;bottom:24px;width:300px;overflow:auto;z-index:500;scrollbar-width:thin}
+    aside,.environment-card{padding:20px;background:#fffffff5;box-shadow:0 8px 40px #142b3826;border:1px solid #fff;border-radius:14px}
+    .environment-card{margin-top:12px;padding:16px 20px}.environment-card .metrics{grid-template-columns:1fr 1fr;margin-top:12px}.environment-card .value{font-size:27px}.environment-card .note{margin-top:8px}
+    .eyebrow{font-size:10px;font-weight:750;letter-spacing:1.8px;color:#667f89}h1{font-size:25px;letter-spacing:-.8px;margin:8px 0 5px}.note{font-size:12px;color:#657b85;line-height:1.6}
+    .link-summary{display:flex;align-items:center;gap:12px;margin-top:8px;color:#526e79;font-size:13px;font-variant-numeric:tabular-nums}
+    .link-summary[hidden]{display:none}.profile-badge{padding:3px 9px;border-radius:6px;background:#e2f1eb;color:#17664f;font-weight:750}
+    .goodput-reading{white-space:nowrap}.goodput-reading strong{color:#172d39;font-weight:650}
+    #coords{font:17px ui-monospace,monospace;line-height:1.7;margin:10px 0;padding:10px 0;border-top:1px solid #e2e8e9;border-bottom:1px solid #e2e8e9}
+    .metrics{display:grid;grid-template-columns:1fr 1fr;gap:18px 10px}.value{font-size:21px;font-weight:650;margin-top:4px}.unit{font-size:11px;color:#73878d;font-weight:400}
+    button{width:100%;padding:11px;margin:22px 0 12px;border:0;border-radius:7px;background:#173c49;color:#fff;font:600 13px system-ui;cursor:pointer}button:hover{background:#245568}button:focus-visible{outline:3px solid #40bb94;outline-offset:3px}
+    .toggle{display:flex;align-items:center;gap:7px;font-size:12px;color:#4e6a75}input{accent-color:#20795f}
+    #detail{margin-top:14px;border-top:1px solid #e2e8e9;padding-top:12px;font-size:11px;color:#637b85;overflow-wrap:anywhere;line-height:1.8}
+    .status-row{display:flex;align-items:center;gap:10px}.status-row>.status-text{flex:1;min-width:0}
+    .info{position:relative;display:inline-flex;flex:none;align-items:center}
+    .info-button{width:19px;height:19px;padding:0;margin:0;border:1px solid #8ba0a8;border-radius:50%;background:transparent;color:#526e79;font:600 12px Georgia,serif;line-height:17px}
+    .info-button:hover,.info-button:focus{background:#e7f0ed;color:#173c49}
+    .info-tooltip{position:absolute;right:0;bottom:calc(100% + 9px);width:240px;padding:10px 12px;border:1px solid #d7e2e4;border-radius:8px;background:#173440;color:#fff;box-shadow:0 4px 18px #142b3833;font:12px/1.6 system-ui,sans-serif;letter-spacing:0;overflow-wrap:anywhere;visibility:hidden;opacity:0;z-index:700;pointer-events:none}
+    .info:hover .info-tooltip,.info:focus-within .info-tooltip{visibility:visible;opacity:1}
+    .leaflet-control-attribution{font-size:10px}#mapError{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);background:white;padding:10px 18px;border-radius:7px;display:none;z-index:600;font-size:12px}
+    .link-activity{position:absolute;top:24px;left:348px;right:68px;max-width:760px;margin-inline:auto;padding:12px 16px 9px;background:#ffffffba;backdrop-filter:blur(10px);border:1px solid #ffffffbf;border-radius:12px;box-shadow:0 5px 24px #142b3817;z-index:450;color:#274653}
+    .link-activity[hidden]{display:none}.activity-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px}.activity-status{font-size:11px;font-weight:650;white-space:nowrap}.activity-legend{display:flex;gap:10px;align-items:center;color:#607783;font-size:10px}.activity-key{display:inline-block;width:9px;height:5px;border-radius:3px;margin-right:4px;vertical-align:1px}.activity-data{background:#d98232}.activity-control{background:#3687c2}.activity-beacon{background:#d8ac24}.activity-gap{color:#986d19;font-size:10px}
+    .activity-body{display:block}.activity-canvas{display:block;width:100%;height:57px}.activity-tooltip{position:absolute;top:calc(100% + 7px);max-width:260px;padding:8px 10px;background:#173440;color:#fff;font:11px/1.5 system-ui;border-radius:7px;pointer-events:none;box-shadow:0 3px 12px #142b3826}.activity-description{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+    @media(max-width:900px){.link-activity{left:340px;right:56px;padding:10px}.activity-legend{gap:6px;font-size:9px}}
+    @media(max-width:600px){.link-activity{top:12px;left:12px;right:54px;padding:10px}.activity-top{gap:5px}.activity-status{font-size:10px}.activity-legend{gap:5px}.activity-legend .activity-range{display:none}}
+    .camera-card{position:absolute;left:336px;bottom:24px;width:280px;padding:14px;background:#fffffff5;box-shadow:0 8px 40px #142b3826;border:1px solid white;border-radius:14px;z-index:500}
+    .camera-card img{display:block;width:100%;aspect-ratio:4/3;object-fit:contain;background:#e7edee;border-radius:7px;margin-top:10px}.camera-card .note{margin-top:8px}
+    .camera-card img[hidden]{display:none}
+    @media(max-width:900px){.camera-card{left:auto;right:16px;width:240px}}
+    @media(max-width:600px){.camera-card{top:12px;bottom:auto;right:12px;width:164px;padding:10px}.camera-card .note{font-size:10px}.camera-card .eyebrow{font-size:9px;letter-spacing:.6px}}
+    @media(max-width:600px){header{height:60px;padding:0 16px}main{height:calc(100dvh - 60px)}.panels{left:12px;right:12px;top:auto;bottom:22px;width:auto;max-height:70%}aside{padding:16px}h1{font-size:20px;margin:4px 0}#coords{margin:10px 0;padding:7px 0;font-size:14px}.metrics{grid-template-columns:repeat(4,1fr);gap:6px}.value{font-size:17px}.eyebrow{font-size:9px;letter-spacing:1px}button{margin:12px 0 8px}#detail{margin-top:9px;padding-top:8px}aside>.note{display:none}.environment-card{padding:12px 16px}.environment-card .value{font-size:22px}}
+  </style>
+</head>
+<body>
+<header><div><div class="brand">PAYLOAD<span> / </span>LIVE</div><div class="subtitle" id="sourcePath">CONNECTING TO TELEMETRY</div></div><div id="live" class="live" role="status"><span class="dot"></span><span id="status">Connecting</span></div></header>
+<main>
+  <div id="map" aria-label="Live GPS location map"></div>
+  <section class="link-activity" id="linkActivity" aria-label="Live radio activity" hidden>
+    <div class="activity-top"><span class="activity-status" role="status">Waiting for event feed</span><div class="activity-legend"><span><i class="activity-key activity-data"></i>Data</span><span><i class="activity-key activity-control"></i>Control</span><span><i class="activity-key activity-beacon"></i>Beacon</span><span class="activity-range" title="60-second history. Width follows estimated airtime; very short packets have a 3-pixel minimum.">60s</span><span class="activity-gap" hidden>⚠ gap</span></div></div>
+    <div class="activity-body"><canvas class="activity-canvas" role="img" aria-label="Single-row scrolling radio history: orange data, blue control, yellow beacons. Capsule width represents estimated airtime; gray lines mark window boundaries." aria-describedby="activityDescription"></canvas></div>
+    <div class="activity-description" id="activityDescription"></div><div class="activity-tooltip" role="tooltip" hidden></div>
+  </section>
+  <div class="panels"><aside>
+    <div class="eyebrow" id="positionSource">LIVE POSITION / MAX-M10S</div><h1 id="positionTitle">Live GPS location</h1>
+    <div class="link-summary" id="linkSummary" hidden><span class="profile-badge" id="profile" aria-label="Current communication profile">—</span><span class="goodput-reading" title="Recent airtime goodput: useful bytes per observed radio-transmission second, over the last four packets">Goodput <strong id="goodput">—</strong> <span class="unit">B/s</span></span></div>
+    <div id="coords">Waiting for GPS coordinates…</div>
+    <div class="metrics">
+      <div><div class="eyebrow">ALTITUDE</div><div class="value"><span id="alt">—</span> <span class="unit">m</span></div></div>
+      <div><div class="eyebrow" id="speedLabel">SPEED</div><div class="value"><span id="speed">—</span> <span class="unit" id="speedUnit">km/h</span></div></div>
+      <div><div class="eyebrow">SATELLITES</div><div class="value" id="sats">—</div></div>
+      <div><div class="eyebrow" id="ppsLabel">PPS COUNT</div><div class="value" id="pps">—</div></div>
+    </div>
+    <button id="center" type="button">Center on receiver ↗</button>
+    <label class="toggle"><input type="checkbox" id="follow" checked> Keep map centered on GPS</label>
+    <div class="note" id="historyStatus" role="status" hidden></div>
+    <div id="detail" class="status-row"><span id="detailText" class="status-text">Waiting for the serial stream…</span><span class="info"><button class="info-button" type="button" aria-label="Connection details" aria-describedby="connectionTooltip">i</button><span class="info-tooltip" id="connectionTooltip" role="tooltip">Waiting for connection details…</span></span></div>
+  </aside>
+  <section class="environment-card" aria-label="Temperature and humidity" hidden id="environmentCard">
+    <div class="eyebrow" id="environmentSource">ENVIRONMENT / DHT22</div>
+    <div class="metrics">
+      <div><div class="eyebrow">TEMPERATURE</div><div class="value"><span id="temperature">—</span> <span class="unit">°F</span></div></div>
+      <div><div class="eyebrow">HUMIDITY</div><div class="value"><span id="humidity">—</span> <span class="unit">% RH</span></div></div>
+    </div>
+    <div class="note status-row"><span id="environmentStatus" class="status-text" role="status">Waiting for sensor…</span><span class="info"><button class="info-button" type="button" aria-label="Environment telemetry details" aria-describedby="environmentTooltip">i</button><span class="info-tooltip" id="environmentTooltip" role="tooltip">Received over LoRa · pauses during control windows</span></span></div>
+  </section></div>
+  <section class="camera-card" aria-label="Camera snapshot" id="cameraCard" hidden>
+    <div class="eyebrow">ARDUCAM / SNAPSHOT</div>
+    <img id="cameraImage" alt="Latest verified image captured by the Arducam" hidden>
+    <div class="note" id="cameraStatus" role="status">Checking camera…</div>
+  </section>
+  <div id="mapError" role="alert"></div>
+</main>
+<script src="/vendor/leaflet.js"></script>
+<script src="/activity.js?v=activity-5"></script>
+<script src="/position-history.js?v=1"></script>
+<script src="/app.js?v=position-history-8"></script>
+</body></html>

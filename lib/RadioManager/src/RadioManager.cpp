@@ -6,14 +6,6 @@ bool RadioManager::valid(const Config& c) {
  bool bw = false; for (auto w : widths) if(c.bandwidth == w) bw = true;
  return c.frequency >= 902000000UL && c.frequency <= 928000000UL && bw && c.spreadingFactor >= 7 && c.spreadingFactor <= 12 && c.codingRate >= 5 && c.codingRate <= 8 && c.power >= 2 && c.power <= 20 && c.preamble >= 6;
 }
-uint32_t RadioManager::airtimeMs(const Config& c, size_t n) {
- const double symbol = double(1UL << c.spreadingFactor) / c.bandwidth;
- const int de = symbol > 0.016 ? 1 : 0;
- const double numerator = 8.0*n - 4*c.spreadingFactor + 28 + (c.crc ? 16 : 0);
- const double blocks = ceil(numerator / (4*(c.spreadingFactor-2*de)));
- const double payload = 8 + (blocks > 0 ? blocks*c.codingRate : 0);
- return uint32_t(ceil((c.preamble + 4.25 + payload)*symbol*1000));
-}
 Status RadioManager::ready() const {
  if(state_ == State::Uninitialized) return Status::NotInitialized;
  if(state_ == State::Fault) return Status::HardwareError;
@@ -50,16 +42,23 @@ Status RadioManager::poll(uint32_t now) {
  if(uint32_t(now-started_)>=timeout_) return fault(Status::Timeout);
  return Status::Ok;
 }
-Status RadioManager::read(uint8_t* p,size_t n,PacketInfo& info) {
+Status RadioManager::read(uint8_t* p,size_t n,PacketInfo& info,uint32_t nowMs) {
  auto s=ready(); if(s!=Status::Ok) return s;
  if(state_!=State::Receiving) return Status::NoPacket;
  if(!p) return Status::InvalidPayload;
- s=adapter_.read(p,n,info); if(s==Status::HardwareError) return fault(s); return s;
+ s=adapter_.read(p,n,info);
+ if(s==Status::HardwareError) return fault(s);
+ if(s==Status::Ok || s==Status::CrcError || s==Status::BufferTooSmall) {
+  info.receivedAtMs=nowMs; info.hasModulation=true;
+  info.spreadingFactor=config_.spreadingFactor; info.bandwidth=config_.bandwidth;
+  info.codingRate=config_.codingRate;
+ }
+ return s;
 }
 const char* statusName(Status s) {
  switch(s) {
 #define NAME(x) case Status::x: return #x;
- NAME(Ok) NAME(NotInitialized) NAME(InvalidConfig) NAME(InvalidPayload) NAME(Busy) NAME(NoPacket) NAME(BufferTooSmall) NAME(HardwareError) NAME(Timeout)
+ NAME(Ok) NAME(NotInitialized) NAME(InvalidConfig) NAME(InvalidPayload) NAME(Busy) NAME(NoPacket) NAME(BufferTooSmall) NAME(HardwareError) NAME(Timeout) NAME(CrcError)
 #undef NAME
  } return "Unknown";
 }

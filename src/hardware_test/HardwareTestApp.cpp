@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <RadioManager.h>
+#include <LinkProfiles.h>
 #include "PhysicalRadioAdapter.h"
 #ifndef TEST_INTERVAL_MS
 #define TEST_INTERVAL_MS 5000UL
@@ -19,11 +20,16 @@ uint32_t counter=0, nextAction=0, recoveryAt=0;
 bool txObserved=false, waiting=false, replyPending=false;
 Config profile() {
  Config c;
-#if TEST_PROFILE == 1
- c.spreadingFactor=9; c.codingRate=5;
-#elif TEST_PROFILE != 0
+#if TEST_PROFILE < 0 || TEST_PROFILE > 4
 #error Unsupported TEST_PROFILE
 #endif
+ const link_profiles::Definition profiles[] = {
+  link_profiles::P0, link_profiles::P1, link_profiles::P2,
+  link_profiles::P3, link_profiles::P4
+ };
+ const auto& selected=profiles[TEST_PROFILE];
+ c.spreadingFactor=selected.spreadingFactor;
+ c.bandwidth=selected.bandwidth; c.codingRate=selected.codingRate;
  return c;
 }
 bool due(uint32_t now,uint32_t at) { return int32_t(now-at)>=0; }

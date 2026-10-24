@@ -1,0 +1,11 @@
+{
+  "magic": "0x55534250",
+  "watchdog_reason": 1,
+  "armed_marker": "0x55534250",
+  "recovery_stage": 9,
+  "core0_stage": 26,
+  "core1_stage": 205,
+  "core0_last_ms": 8002,
+  "core1_last_ms": 8002,
+  "last_usb_sof_change_ms": 8002
+}

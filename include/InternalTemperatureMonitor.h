@@ -28,6 +28,9 @@ struct Reading {
  uint32_t sequence=0, sampledAt=0;
 };
 static Reading latest;
+#ifdef DS18_BUS_DIAGNOSTICS
+namespace diagnostic { void begin(); void read(); void poll(); }
+#endif
 
 inline void publish(float c,const char* status,uint32_t now) {
  Reading next;next.c=c;next.status=status;next.valid=strcmp(status,"OK")==0;
@@ -58,9 +61,16 @@ inline void discover(uint32_t now) {
 inline void beginSensor() {
  // Only core 1 accesses GP26/1-Wire. Sensor VDD/pull-up use 3.3 V.
  bus.begin(DataPin);
+#ifdef DS18_BUS_DIAGNOSTICS
+ diagnostic::begin();
+#else
  discover(millis());
+#endif
 }
 inline void readSensor() {
+#ifdef DS18_BUS_DIAGNOSTICS
+ diagnostic::read();return;
+#endif
  uint32_t now=millis();
  if(!found) {
   if(int32_t(now-nextDiscoveryAt)>=0)discover(now);
@@ -83,6 +93,9 @@ inline void readSensor() {
  if(!valid) { found=false;nextDiscoveryAt=now+RediscoverMs; }
 }
 inline void poll() {
+#ifdef DS18_BUS_DIAGNOSTICS
+ diagnostic::poll();
+#endif
  static uint32_t reported=0;
  Reading reading;
  if(!mutex_try_enter(&readingMutex,nullptr))return;
@@ -92,10 +105,13 @@ inline void poll() {
  if(reading.valid) {dtostrf(reading.c,0,2,c);dtostrf(reading.c*1.8f+32,0,2,f);}
  for(unsigned i=0;i<8;++i)snprintf(rom+2*i,3,"%02X",unsigned(reading.rom[i]));
  const int length=snprintf(line,sizeof(line),
-  "INTERNAL_TEMP %s c=%s f=%s sensor=DS18B20 pin=%u resolution_bits=12 devices=%u rom=%s idle_high=%u presence=%u sequence=%lu\r\n",
-  reading.status,c,f,unsigned(DataPin),unsigned(reading.devices),rom,unsigned(reading.idleHigh),unsigned(reading.presence),(unsigned long)reading.sequence);
+  "INTERNAL_TEMP %s c=%s f=%s sensor=DS18B20 pin=%u resolution_bits=12 devices=%u rom=%s idle_high=%u presence=%u sequence=%lu sampled_ms=%lu\r\n",
+  reading.status,c,f,unsigned(DataPin),unsigned(reading.devices),rom,unsigned(reading.idleHigh),unsigned(reading.presence),(unsigned long)reading.sequence,(unsigned long)reading.sampledAt);
  if(length>0 && size_t(length)<sizeof(line) && usb_output::availableForWrite()>=length) {
   Serial.write(reinterpret_cast<const uint8_t*>(line),size_t(length));reported=reading.sequence;
  }
 }
 }
+#ifdef DS18_BUS_DIAGNOSTICS
+#include "InternalTemperatureDiagnostics.h"
+#endif

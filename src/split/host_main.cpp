@@ -12,6 +12,16 @@
 #error Select a balloon or ground host role
 #endif
 #include "StatusLed.h"
+#if defined(USE_TINYUSB) && defined(RADIO_TRANSMITTER) && defined(USB_BOOTSEL_PURPLE)
+// Wrap the framework's bootloader entry without modifying its installed
+// sources or its 1200-baud/DTR detection. Keep this paired with the linker
+// --wrap flag in split_host. The original function enters ROM and never returns.
+extern "C" void __real__Z21TinyUSB_Port_EnterDFUv();
+extern "C" void __wrap__Z21TinyUSB_Port_EnterDFUv() {
+ status_led::bootloaderRequested();
+ __real__Z21TinyUSB_Port_EnterDFUv();
+}
+#endif
 #include <pico/rand.h>
 #ifdef APPLICATION_WATCHDOG
 #include "ApplicationWatchdog.h"

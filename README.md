@@ -35,6 +35,7 @@ excluded from those builds. Opt-in one-way builds: `transmitter_test` and
 - [Public API, state rules and simulator](docs/RadioManager.md)
 - [Upload and physical test procedure](docs/HARDWARE_TESTING.md)
 - [USB unavailable, BOOTSEL upload recovery, and flight watchdog behavior](docs/USB_RECOVERY.md#troubleshooting-usb-unavailable-or-upload-cannot-enter-bootsel)
+- [Internal DS18B20 probe, RP2040 timing fix, and diagnostic builds](docs/DS18B20.md)
 - [Executed tests, memory usage and pending validation](docs/STAGE1_REPORT.md)
 
 Attach suitable antennas and establish permitted RF settings before hardware

@@ -119,3 +119,36 @@ AGENTS.md
 # macOS
 .DS_Store
 Thumbs.db
+
+
+# Generated firmware and linker output
+*.elf
+*.uf2
+*.hex
+*.map
+
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+
+# Local process IDs and editor/manual backups
+*.pid
+*-pid.txt
+*.before
+*.bak
+*~
+
+# Disposable hardware investigation output (keep reports, summaries, and source)
+/test-results/**/artifacts/
+/test-results/**/*.bin
+/test-results/**/*.jsonl
+/test-results/**/*.jpg
+/test-results/**/*.jpeg
+/test-results/**/*.png
+/test-results/**/*.log.flash
+/test-results/**/dashboard*.json
+/test-results/**/*api*.json
+/test-results/**/trace.json
+/test-results/**/recovery-trace.json
+/test-results/**/before.json
+/test-results/**/after-ground.json

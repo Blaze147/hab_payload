@@ -42,6 +42,12 @@ inline void begin() {
  activityMs=0;
  display(pixel.Color(24,24,24));
 }
+inline void bootloaderRequested() {
+ // The WS2812 retains this colour while ROM BOOTSEL runs. Wait for the
+ // PIO transmission and reset/latch interval before handing over to ROM.
+ display(pixel.Color(40,0,40));
+ busy_wait_us_32(400);
+}
 inline void poll(uint32_t now) {
  const uint32_t elapsed=now-startedAt;
  if(elapsed<2000) display(elapsed%400<200 ? pixel.Color(24,24,24):0);

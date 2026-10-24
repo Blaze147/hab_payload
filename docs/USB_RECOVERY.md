@@ -35,7 +35,14 @@ DTR (normally by closing the port). Its `tud_cdc_line_state_cb` calls
 A deliberate upload/recovery action can use these ordinary serial controls;
 ChatGPT does not need to be running or listening. Normal monitors should use
 115200 baud. BOOTSEL entry deliberately stops telemetry until reboot/upload.
-The old automatic solid-purple recovery indication has been removed.
+On the normal balloon build, this explicit USB bootloader request sets the
+RP2040 Zero LED solid purple before entering ROM BOOTSEL. The WS2812 retains
+that colour while ROM runs, distinguishing requested BOOTSEL from red P0 packet
+activity. This does not apply to physical BOOTSEL entry, which bypasses the
+application. Watchdog resets still restart the normal application.
+The balloon linker wraps `TinyUSB_Port_EnterDFU()` to set the colour and wait
+400 microseconds for the PIO transmission/latch; installed framework sources
+are unchanged. `USB_BOOTSEL_PURPLE` and its paired linker flag enable this hook.
 
 USB recovery requires a working enough USB stack to handle that request.
 A frozen application first gets the normal watchdog restart, after which USB

@@ -20,6 +20,64 @@ class TelemetryTests(unittest.TestCase):
         server.state.clear()
         server.state.update(self.saved_state)
 
+    def test_internal_probe_retains_last_good_value_independently(self):
+        server.state.update(source='ground', internal_probe=None, internal_probe_received_at=None)
+        raw = b'\xa1' + struct.pack('>I', 100) + bytes([3, 2]) + struct.pack('>h', -1234)
+        line = f'GROUND_RX session=1 message=1 bytes={len(raw)} hex={raw.hex()}'
+        with patch('server.time.time', return_value=100):
+            server.consume_line(line)
+        with patch('server.time.time', return_value=110):
+            server.consume_line(record())
+            value = server.snapshot()
+        self.assertEqual(value['internal_probe'], -12.34)
+        self.assertEqual(value['internal_probe_age_seconds'], 10)
+        self.assertEqual(value['internal_probe_latest_status'], 'UNAVAILABLE')
+        self.assertEqual(value['environment_latest_status'], 'OK')
+        server.consume_line('GROUND_RX invalid')
+        self.assertEqual(server.state['internal_probe_latest_status'], 'BAD_PACKET')
+
+    def test_direct_internal_probe(self):
+        server.state.update(source='balloon', internal_probe=None, internal_probe_received_at=None)
+        with patch('server.time.time', return_value=100):
+            server.consume_line('INTERNAL_TEMP OK c=-20.5 sensor=DS18B20')
+        with patch('server.time.time', return_value=102):
+            server.consume_line('INTERNAL_TEMP READ_ERROR c=NA')
+            value = server.snapshot()
+        self.assertEqual(value['internal_probe'], -20.5)
+        self.assertEqual(value['internal_probe_age_seconds'], 2)
+        self.assertEqual(value['internal_probe_latest_status'], 'READ_ERROR')
+
+    def test_external_values_keep_independent_last_good_readings(self):
+        server.state.update(source='ground')
+        raw = b'\xa1' + struct.pack('>I', 100) + bytes([4, 2]) + struct.pack('>h', 2261) + bytes([5, 4]) + struct.pack('>I', 82782)
+        line = f'GROUND_RX session=1 message=1 bytes={len(raw)} hex={raw.hex()}'
+        with patch('server.time.time', return_value=100):
+            server.consume_line(line)
+        with patch('server.time.time', return_value=110):
+            server.consume_line(record())
+            value = server.snapshot()
+        self.assertEqual(value['external_temperature'], 22.61)
+        self.assertEqual(value['pressure'], 82782)
+        for name in ('external_temperature', 'pressure'):
+            self.assertEqual(value[name + '_age_seconds'], 10)
+            self.assertEqual(value[name + '_latest_status'], 'UNAVAILABLE')
+        server.consume_line('GROUND_RX invalid')
+        self.assertEqual(server.state['pressure_latest_status'], 'BAD_PACKET')
+
+    def test_external_direct_usb_readings(self):
+        server.state.update(source='balloon')
+        with patch('server.time.time', return_value=100):
+            server.consume_line('RTD OK c=-20.5')
+            server.consume_line('BARO OK pressure_pa=82782')
+        with patch('server.time.time', return_value=102):
+            server.consume_line('RTD READ_ERROR c=NA')
+            server.consume_line('BARO READ_ERROR pressure_pa=NA')
+            value = server.snapshot()
+        self.assertEqual(value['external_temperature'], -20.5)
+        self.assertEqual(value['pressure'], 82782)
+        self.assertEqual(value['pressure_age_seconds'], 2)
+        self.assertEqual(value['external_temperature_latest_status'], 'READ_ERROR')
+
     def test_real_balloon_payload(self):
         value = parse_ground_line(record())
         self.assertEqual(value['sample']['status'], 'FIX')

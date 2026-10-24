@@ -13,6 +13,7 @@
     .panels{position:absolute;left:24px;top:24px;bottom:24px;width:300px;overflow:auto;z-index:500;scrollbar-width:thin}
     aside,.environment-card{padding:20px;background:#fffffff5;box-shadow:0 8px 40px #142b3826;border:1px solid #fff;border-radius:14px}
     .environment-card{margin-top:12px;padding:16px 20px}.environment-card .metrics{grid-template-columns:1fr 1fr;margin-top:12px}.environment-card .value{font-size:27px}.environment-card .note{margin-top:8px}
+    .external-environment{border-top:1px solid #e2e8e9;margin-top:14px;padding-top:14px}
     .eyebrow{font-size:10px;font-weight:750;letter-spacing:1.8px;color:#667f89}h1{font-size:25px;letter-spacing:-.8px;margin:8px 0 5px}.note{font-size:12px;color:#657b85;line-height:1.6}
     .link-summary{display:flex;align-items:center;gap:12px;margin-top:8px;color:#526e79;font-size:13px;font-variant-numeric:tabular-nums}
     .link-summary[hidden]{display:none}.profile-badge{padding:3px 9px;border-radius:6px;background:#e2f1eb;color:#17664f;font-weight:750}
@@ -23,6 +24,7 @@
     .toggle{display:flex;align-items:center;gap:7px;font-size:12px;color:#4e6a75}input{accent-color:#20795f}
     #detail{margin-top:14px;border-top:1px solid #e2e8e9;padding-top:12px;font-size:11px;color:#637b85;overflow-wrap:anywhere;line-height:1.8}
     .status-row{display:flex;align-items:center;gap:10px}.status-row>.status-text{flex:1;min-width:0}
+    .stale-data{color:#b85c00;font-weight:650}
     .info{position:relative;display:inline-flex;flex:none;align-items:center}
     .info-button{width:19px;height:19px;padding:0;margin:0;border:1px solid #8ba0a8;border-radius:50%;background:transparent;color:#526e79;font:600 12px Georgia,serif;line-height:17px}
     .info-button:hover,.info-button:focus{background:#e7f0ed;color:#173c49}
@@ -66,13 +68,21 @@
     <div class="note" id="historyStatus" role="status" hidden></div>
     <div id="detail" class="status-row"><span id="detailText" class="status-text">Waiting for the serial stream…</span><span class="info"><button class="info-button" type="button" aria-label="Connection details" aria-describedby="connectionTooltip">i</button><span class="info-tooltip" id="connectionTooltip" role="tooltip">Waiting for connection details…</span></span></div>
   </aside>
-  <section class="environment-card" aria-label="Temperature and humidity" hidden id="environmentCard">
-    <div class="eyebrow" id="environmentSource">ENVIRONMENT / DHT22</div>
+  <section class="environment-card" aria-label="Internal and external environment" hidden id="environmentCard">
+    <div class="eyebrow" id="environmentSource">INTERNAL PAYLOAD ENVIRONMENT</div>
     <div class="metrics">
-      <div><div class="eyebrow">TEMPERATURE</div><div class="value"><span id="temperature">—</span> <span class="unit">°F</span></div></div>
+      <div><div class="eyebrow" id="temperatureLabel">TEMPERATURE A</div><div class="value"><span id="temperature">—</span> <span class="unit">°F</span></div></div>
       <div><div class="eyebrow">HUMIDITY</div><div class="value"><span id="humidity">—</span> <span class="unit">% RH</span></div></div>
     </div>
     <div class="note status-row"><span id="environmentStatus" class="status-text" role="status">Waiting for sensor…</span><span class="info"><button class="info-button" type="button" aria-label="Environment telemetry details" aria-describedby="environmentTooltip">i</button><span class="info-tooltip" id="environmentTooltip" role="tooltip">Received over LoRa · pauses during control windows</span></span></div>
+    <div class="external-environment">
+      <div class="eyebrow">EXTERNAL ENVIRONMENT</div>
+      <div class="metrics">
+        <div><div class="eyebrow">TEMPERATURE</div><div class="value"><span id="externalTemperature">—</span> <span class="unit">°F</span></div></div>
+        <div><div class="eyebrow">PRESSURE</div><div class="value"><span id="pressure">—</span> <span class="unit">hPa</span></div></div>
+      </div>
+      <div class="note" id="externalStatus" role="status">Waiting for sensors…</div>
+    </div>
   </section></div>
   <section class="camera-card" aria-label="Camera snapshot" id="cameraCard" hidden>
     <div class="eyebrow">ARDUCAM / SNAPSHOT</div>

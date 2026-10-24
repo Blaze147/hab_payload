@@ -58,21 +58,56 @@ function updateCamera(data){
     $('cameraStatus').textContent=`${camera.width} × ${camera.height} · ${age}s ago · one image/min${age>90?' · overdue':''}`;
   }else $('cameraStatus').textContent=camera.status==='RECEIVING'?'Receiving first JPEG…':'Camera connected · waiting for first snapshot';
 }
+const temperatureRotationStarted = Date.now();
 function updateEnvironment(data){
   const e=data.environment;
-  if(e) $('environmentCard').hidden=false;
+  if(e || Number.isFinite(data.internal_probe) || Number.isFinite(data.external_temperature) || Number.isFinite(data.pressure)) $('environmentCard').hidden=false;
   const ground=data.source==='ground';
-  const fresh=data.connected && data.environment_age_seconds!==null && data.environment_age_seconds<(data.freshness_seconds?.environment??6);
-  const valid=e?.status==='OK' && Number.isFinite(e.c) && Number.isFinite(e.humidity_pct);
-  $('temperature').textContent=valid?fmt(e.c * 9 / 5 + 32):'—';
-  $('humidity').textContent=valid?fmt(e.humidity_pct):'—';
-  const age=Number.isFinite(data.environment_age_seconds)?`${Math.floor(data.environment_age_seconds)}s since update`:'';
-  const latest=data.environment_latest_status??e?.status;
-  const warning=latest==='BAD_PACKET'?'Latest telemetry packet invalid':latest && latest!=='OK'?(ground?'Latest sensor data unavailable':'Latest sensor read failed · retrying'):'';
-  const state=!data.connected?'Ground/device disconnected':!e?'Waiting for sensor…':valid && !fresh?'Sensor update stale':'';
-  $('environmentStatus').textContent=[age,warning,state].filter(Boolean).join(' · ');
-  $('environmentTooltip').textContent=ground?'Received over LoRa · pauses during control windows':'Live sensor · updates every 2 seconds';
+  const probe=Math.floor((Date.now()-temperatureRotationStarted)/30000)%2===1;
+  const age=probe?data.internal_probe_age_seconds:data.environment_age_seconds;
+  const value=probe?data.internal_probe:e?.c;
+  const latest=probe?data.internal_probe_latest_status:(data.environment_latest_status??e?.status);
+  const stale=!data.connected || !Number.isFinite(value) || !Number.isFinite(age) || age>=(data.freshness_seconds?.environment??6) || latest!=='OK';
+  $('temperatureLabel').textContent=probe?'TEMPERATURE B':'TEMPERATURE A';
+  $('temperature').textContent=Number.isFinite(value)?fmt(value * 9 / 5 + 32):'—';
+  $('humidity').textContent=fmt(e?.humidity_pct);
+  const status=$('environmentStatus');
+  status.replaceChildren();
+  if(Number.isFinite(age)) status.append(`${Math.floor(age)}s since update${stale?' · ':''}`);
+  if(stale){
+    const warning=document.createElement('span');
+    warning.className='stale-data';
+    warning.textContent='Stale Data';
+    status.append(warning);
+  }
+  $('environmentTooltip').textContent=`Temperature ${probe?'B: internal DS18B20 probe':'A: DHT sensor'} · switches every 30 seconds · humidity: DHT · ${ground?'received over LoRa':'direct USB'} · age and status follow the displayed temperature`;
 }
+
+function updateExternalEnvironment(data){
+  $('externalTemperature').textContent=Number.isFinite(data.external_temperature)?fmt(data.external_temperature * 9 / 5 + 32):'—';
+  $('pressure').textContent=Number.isFinite(data.pressure)?fmt(data.pressure / 100):'—';
+  const stale=[];
+  for(const [name,label] of [['external_temperature','Temperature'],['pressure','Pressure']]){
+    const age=data[name+'_age_seconds'];
+    if(!data.connected || !Number.isFinite(data[name]) || !Number.isFinite(age) || age>=(data.freshness_seconds?.environment??6) || data[name+'_latest_status']!=='OK') stale.push(label);
+  }
+  const status=$('externalStatus');
+  const temperatureAge=data.external_temperature_age_seconds;
+  const pressureAge=data.pressure_age_seconds;
+  const ageText=age=>Number.isFinite(age)?`${Math.floor(age)}s since update`:'No reading yet';
+  const sameAge=Number.isFinite(temperatureAge) && Number.isFinite(pressureAge) && Math.floor(temperatureAge)===Math.floor(pressureAge);
+  status.replaceChildren();
+  status.append(sameAge?ageText(temperatureAge):`Temperature: ${ageText(temperatureAge)} · Pressure: ${ageText(pressureAge)}`);
+  if(stale.length){
+    status.append(' · ');
+    const warning=document.createElement('span');
+    warning.className='stale-data';
+    warning.textContent=stale.length===2?'Stale Data':`${stale[0]} · Stale Data`;
+    status.append(warning);
+  }
+  status.hidden=false;
+}
+
 async function update(){
   try{
     const response=await fetch('/api/gps',{cache:'no-store',signal:AbortSignal.timeout(3000)});
@@ -83,12 +118,13 @@ async function update(){
     $('sourcePath').textContent=ground?'BALLOON → LORA → GROUND STATION':'BALLOON → USB';
     $('linkSummary').hidden=!ground;
     $('positionSource').textContent=ground?'BALLOON / RECEIVED TELEMETRY':'LIVE POSITION / MAX-M10S';
-    $('positionTitle').textContent=ground?'Balloon payload position':'Live GPS location';
-    $('environmentSource').textContent=ground?'BALLOON ENVIRONMENT / LORA':'ENVIRONMENT / DHT22';
+    $('positionTitle').textContent=ground?'HAB Payload Position':'Live GPS location';
+    $('environmentSource').textContent='INTERNAL PAYLOAD ENVIRONMENT';
     $('speedLabel').textContent=ground?'SIGNAL RSSI':'SPEED';
     $('speedUnit').textContent=ground?'dBm':'km/h';
     $('ppsLabel').textContent=ground?'MESSAGES RX':'PPS COUNT';
     updateEnvironment(data);
+    updateExternalEnvironment(data);
     updateCamera(data);
     const fresh=data.connected && data.age_seconds!==null && data.age_seconds<(data.freshness_seconds?.gps??4);
     const fixed=fresh && s?.status==='FIX' && Number.isFinite(s.lat) && Number.isFinite(s.lon);
@@ -124,6 +160,7 @@ async function update(){
   }catch(error){
     activityTimeline.disconnect();
     updateEnvironment({connected:false});
+    updateExternalEnvironment({connected:false});
     updateCamera({connected:false});
     $('status').textContent='Local server disconnected';$('live').classList.remove('ok');
     for(const id of ['alt','speed','sats','pps','profile','goodput']) $(id).textContent='—';

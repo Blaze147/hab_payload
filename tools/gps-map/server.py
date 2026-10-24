@@ -23,6 +23,8 @@ state = {"connected": False, "port": None, "sample": None,
          "received_at": None, "environment": None, "environment_received_at": None,
          "source": "auto", "telemetry": None, "received_messages": 0,
          "environment_latest_status": None,
+         "internal_probe": None, "internal_probe_received_at": None,
+         "internal_probe_latest_status": None,
          "error": "Connecting to RP2040…"}
 
 
@@ -84,6 +86,24 @@ def update_environment(environment, now):
         state['environment'] = environment
 
 
+def update_internal_probe(value, now, status='UNAVAILABLE'):
+    valid = isinstance(value, (int, float)) and math.isfinite(value) and -55 <= value <= 125
+    state['internal_probe_latest_status'] = 'OK' if valid else status
+    if valid:
+        state.update(internal_probe=value, internal_probe_received_at=now)
+
+
+def update_external_sensor(name, value, now, status='UNAVAILABLE'):
+    minimum, maximum = (-200, 327.67) if name == 'external_temperature' else (0, 200000)
+    valid = isinstance(value, (int, float)) and math.isfinite(value) and minimum <= value <= maximum
+    if name == 'pressure' and value == 0:
+        valid = False
+    state[name + '_latest_status'] = 'OK' if valid else status
+    if valid:
+        state[name] = value
+        state[name + '_received_at'] = now
+
+
 def consume_line(line):
     ground = parse_ground_line(line)
     with lock:
@@ -96,14 +116,38 @@ def consume_line(line):
         if ground and state['source'] != 'balloon':
             now = time.time()
             environment = ground.pop('environment')
+            update_internal_probe(ground.get('sensors', {}).get('internal_low_temperature_c'), now)
+            sensors = ground.get('sensors', {})
+            update_external_sensor('external_temperature', sensors.get('external_rtd_c'), now)
+            update_external_sensor('pressure', sensors.get('pressure_pa'), now)
             state.update(source='ground', **ground, received_at=now,
                          received_messages=state['received_messages'] + 1)
             update_environment(environment, now)
             return
         if line.startswith('GROUND_RX ') and state['source'] != 'balloon':
             state['environment_latest_status'] = 'BAD_PACKET'
+            state['internal_probe_latest_status'] = 'BAD_PACKET'
+            state['external_temperature_latest_status'] = 'BAD_PACKET'
+            state['pressure_latest_status'] = 'BAD_PACKET'
         if state['source'] == 'ground':
             return
+        if line.startswith(('RTD ', 'BARO ')):
+            parts = line.split()
+            name, key = ('external_temperature', 'c') if parts[0] == 'RTD' else ('pressure', 'pressure_pa')
+            fields = dict(p.split('=', 1) for p in parts[2:] if '=' in p)
+            try:
+                value = float(fields.get(key, 'nan')) if parts[1] == 'OK' else None
+            except ValueError:
+                value = None
+            update_external_sensor(name, value, time.time(), parts[1])
+        if line.startswith('INTERNAL_TEMP '):
+            parts = line.split()
+            fields = dict(p.split('=', 1) for p in parts[2:] if '=' in p)
+            try:
+                value = float(fields.get('c', 'nan')) if parts[1] == 'OK' else None
+            except ValueError:
+                value = None
+            update_internal_probe(value, time.time(), parts[1])
         camera.feed(line)
         sample = parse_line(line)
         if sample:
@@ -122,6 +166,11 @@ def snapshot():
     payload['age_seconds'] = now - payload['received_at'] if payload['received_at'] is not None else None
     payload['environment_age_seconds'] = (
         now - payload['environment_received_at'] if payload['environment_received_at'] is not None else None)
+    payload['internal_probe_age_seconds'] = (
+        now - payload['internal_probe_received_at'] if payload['internal_probe_received_at'] is not None else None)
+    for name in ('external_temperature', 'pressure'):
+        received = payload.get(name + '_received_at')
+        payload[name + '_age_seconds'] = now - received if received is not None else None
     # P0 packet airtime plus scheduled beacon/control windows create legitimate
     # pauses. Local direct-USB sensor feeds retain their tighter age limits.
     payload['freshness_seconds'] = {'gps': 60, 'environment': 60} if payload['source'] == 'ground' else {'gps': 4, 'environment': 6}

@@ -9,7 +9,7 @@ void RadioServer::frame(Kind kind,uint16_t id,uint32_t session,const uint8_t* p,
  memcpy(request_,p,n);requestLength_=n;requestId_=id;requestSession_=session;pending_=true;
 }
 void RadioServer::status(Kind kind,uint16_t id,uint8_t result) {
- Writer w(scratch_);w.u8(result);w.u32(io_.now());w.u8(uint8_t(radio_.state()));w.u8(uint8_t(radio_.transmission()));config(w,radio_.config());
+ Writer w(scratch_);w.u8(result);w.u32(io_.now());w.u8(uint8_t(radio_.state()));w.u8(uint8_t(radio_.transmission()));config(w,radio_.config());w.u8(protocol_.lastTransmissionRestarted());
  send(kind,id,session_,scratch_,w.length);
 }
 void RadioServer::execute() {
@@ -24,6 +24,8 @@ void RadioServer::execute() {
  if(haveLast_ && int16_t(requestId_-lastId_)<=0) { ++rejectedCommands;return; }
  uint8_t result=uint8_t(radio::Status::InvalidPayload);
  switch(op) {
+ case Op::MarkRestart:
+  if(r.done()) { protocol_.markRestart();result=uint8_t(radio::Status::Ok); }break;
  case Op::Hello: case Op::Status:
   if(r.done()) result=uint8_t(radio::Status::Ok);break;
  case Op::Initialize: case Op::Configure: {

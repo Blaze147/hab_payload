@@ -20,9 +20,9 @@ public:
   if(count==Capacity) { ++activityDropped;return; }
   auto& line=lines[(head+count)%Capacity];line.length=0;
   const char* type=a.type==protocol::PacketType::Data ? "data" : a.type==protocol::PacketType::Control ? "control" : "beacon";
-  append(line,"GROUND_EVENT kind=packet seq=%lu ms=%lu startMs=%lu durationMs=%lu direction=%s type=%s flags=%u profile=P%u\r\n",
+  append(line,"GROUND_EVENT kind=packet seq=%lu ms=%lu startMs=%lu durationMs=%lu direction=%s type=%s flags=%u profile=P%u restarted=%u\r\n",
    (unsigned long)sequence,(unsigned long)millis(),(unsigned long)a.startMs,(unsigned long)a.durationMs,
-   a.transmitting?"tx":"rx",type,unsigned(a.flags),unsigned(a.profile));
+   a.transmitting?"tx":"rx",type,unsigned(a.flags),unsigned(a.profile),unsigned(a.restarted));
   ++count;
  }
  void pollLink(const LinkManager& link,uint32_t now) {

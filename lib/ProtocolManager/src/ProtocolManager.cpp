@@ -27,6 +27,7 @@ packet_statistics::Observation ProtocolManager::observation(const radio::PacketI
 radio::Status ProtocolManager::poll(uint32_t nowMs) {
  const auto before=radio_.state();
  auto result=radio_.poll(nowMs);
+ settleRestart();
  if(before!=radio::State::Fault && radio_.state()==radio::State::Fault)
   statistics_.recordRadioError();
  if(result!=radio::Status::Ok || radio_.state()!=radio::State::Receiving) return result;
@@ -51,6 +52,33 @@ protocol::Result transmitResult(radio::Status status) {
 }
 void finishPacket(uint8_t* wire,size_t length) { put16(wire+length-2,protocol::crc16(wire,length-2)); }
 }
+void ProtocolManager::settleRestart() {
+ if(restartInFlight_ && radio_.transmission()!=radio::TxStatus::InProgress) {
+  // Retain the indication when a locally accepted TX fails or times out.
+  if(radio_.transmission()!=radio::TxStatus::Complete) restartPending_=true;
+  restartInFlight_=false;
+ }
+}
+protocol::Result ProtocolManager::transmit(uint8_t* wire,size_t length,uint32_t now) {
+ settleRestart();
+ // Only use existing flag fields. Beacons cannot carry or consume a restart.
+ const auto type=protocol::PacketType(wire[1]);
+ const bool hasFlags=type==protocol::PacketType::Data || type==protocol::PacketType::Control;
+ const size_t offset=type==protocol::PacketType::Data ? protocol::FlagsOffset : protocol::ControlFlagsOffset;
+ if(hasFlags) wire[offset]&=uint8_t(~protocol::RestartFlag); // Never echo an RX restart.
+ const bool eligible=type==protocol::PacketType::Data ||
+  (type==protocol::PacketType::Control && wire[offset]==uint8_t(protocol::ControlFlag::None));
+ const bool restarted=restartPending_ && eligible;
+ if(restarted) wire[offset]|=protocol::RestartFlag;
+ finishPacket(wire,length);
+ const auto result=transmitResult(radio_.transmit(wire,length,now));
+ if(result==protocol::Result::Ok) {
+  lastTxRestarted_=restarted;
+  restartInFlight_=restarted;
+  if(restarted) restartPending_=false;
+ }
+ return result;
+}
 protocol::Result ProtocolManager::sendData(const protocol::DataPacket& p,uint32_t now) {
  return sendData(p.header,p.payload,now);
 }
@@ -62,8 +90,8 @@ protocol::Result ProtocolManager::sendData(const protocol::Header& header,const 
  // Reuse RX workspace outside callbacks; adapter must consume TX bytes before return.
  dataHeaderBytes(header,fragment_.rawBytes);
  memcpy(fragment_.rawBytes+protocol::PayloadOffset,payload,header.payloadLength);
- const size_t n=protocol::packetSize(header.payloadLength); finishPacket(fragment_.rawBytes,n);
- return transmitResult(radio_.transmit(fragment_.rawBytes,n,now));
+ const size_t n=protocol::packetSize(header.payloadLength);
+ return transmit(fragment_.rawBytes,n,now);
 }
 protocol::Result ProtocolManager::sendControl(const protocol::ControlPacket& p,uint32_t now) {
  if(!protocol::valid(p)) return protocol::Result::InvalidArgument;
@@ -72,15 +100,15 @@ protocol::Result ProtocolManager::sendControl(const protocol::ControlPacket& p,u
  wire[3]=p.flags; wire[4]=p.profileChangeRequest; wire[5]=uint8_t(p.windowTimingSlide);
  put16(wire+6,p.retransmitMessageId); put16(wire+8,p.retransmitGroupBitmap);
  for(uint8_t i=0;i<p.retransmitBitmapCount;++i) put16(wire+10+2*i,p.retransmitBitmaps[i]);
- const size_t n=protocol::controlPacketSize(p.retransmitBitmapCount); finishPacket(wire,n);
- return transmitResult(radio_.transmit(wire,n,now));
+ const size_t n=protocol::controlPacketSize(p.retransmitBitmapCount);
+ return transmit(wire,n,now);
 }
 protocol::Result ProtocolManager::sendBeacon(const protocol::BeaconPacket& p,uint32_t now) {
  if(!protocol::valid(p)) return protocol::Result::InvalidArgument;
  uint8_t wire[protocol::BeaconPacketSize];
  wire[0]=p.version; wire[1]=uint8_t(p.type); put16(wire+2,p.timeToNextConversation);
- wire[4]=p.conversationDuration; finishPacket(wire,sizeof(wire));
- return transmitResult(radio_.transmit(wire,sizeof(wire),now));
+ wire[4]=p.conversationDuration;
+ return transmit(wire,sizeof(wire),now);
 }
 protocol::Result ProtocolManager::deliverData(const protocol::Header& header,const radio::PacketInfo& info,
                                               packet_statistics::Integrity integrity) {
@@ -109,7 +137,7 @@ protocol::Result ProtocolManager::receiveRaw(const uint8_t* bytes,size_t length,
   return protocol::Result::InvalidArgument;
  };
  if(bytes[0]!=protocol::Version) return malformed();
- const auto type=static_cast<protocol::PacketType>(bytes[1]);
+ const auto type=protocol::PacketType(bytes[1]);
  if(type==protocol::PacketType::Data) {
   if(length<protocol::PacketOverhead) return malformed();
   protocol::Header h;

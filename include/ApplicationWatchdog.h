@@ -1,7 +1,6 @@
 #pragma once
 #ifdef APPLICATION_WATCHDOG
 #include <hardware/watchdog.h>
-#include <pico/bootrom.h>
 #include <hardware/structs/usb.h>
 #include <hardware/structs/nvic.h>
 #include <hardware/structs/timer.h>
@@ -34,17 +33,14 @@ inline void stage(uint32_t value) {
 // Only a completed main-loop iteration feeds the hardware watchdog. There is
 // no PC heartbeat, elapsed-runtime deadline, or diagnostic crash command.
 inline void progress() {watchdog_update();}
-inline void begin(void (*beforeBootsel)()=nullptr) {
+inline void begin() {
  trace[0]=Armed;trace[1]=watchdog_hw->reason;trace[2]=watchdog_hw->scratch[4];trace[3]=watchdog_hw->scratch[0];
- const bool expired=recovering;
+ // A timeout always returns to the application, including sensor core 1.
+ // BOOTSEL is an explicit USB maintenance command, never a reset policy.
  watchdog_hw->scratch[0]=0;
- if(expired) {
-  trace[8]=0;
-  if(beforeBootsel) {beforeBootsel();trace[8]=1;}
-  trace[4]=9;reset_usb_boot(0,0);
- }
  trace[4]=1;
  for(unsigned i=5;i<32;++i) trace[i]=0;
+ trace[8]=recovering ? 1 : 0;
  watchdog_hw->scratch[0]=Armed;
  watchdog_enable(8000,true);
 }

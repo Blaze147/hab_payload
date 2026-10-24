@@ -13,6 +13,58 @@ serialize using explicit offsets, never sizeof or native-memory casts. Unused
 array entries and native padding are never transmitted. Maximum packet size is
 255 bytes. The current definitions are in the `protocol` namespace.
 
+## Sender-restarted flag
+
+The sender-restarted indication uses `0x80` in an **existing** flags field:
+
+- Data: bit 7 of the data flags byte (offset 11). Other data flag bits are preserved.
+- Control: the flags byte (offset 3) may be `0x80` only when otherwise None (zero).
+  SYN=1, SYN-ACK=3, ACK=2 and other occupied control flags remain unchanged and
+  never combine with or get replaced by the restart indication.
+- Beacon: no flags field exists. Its seven-byte layout stays unchanged, and it
+  cannot carry the restart indication. The packet-type byte also stays unchanged
+  for every packet family; no common-header flag has been introduced.
+
+ProtocolManager starts with a pending restart indication on construction, so a
+LoRa MCU restart arms it automatically. `markRestart()` also arms it explicitly.
+The RP2040's RemoteProtocol queues an indication on construction and forwards it
+via the UART `MarkRestart` command before returning from its first successful
+`connect()`. Both boards restarting before an eligible transmission coalesces
+into one flag. Ordinary UART reconnects, radio reconfiguration, link reacquisition
+and message-ID rollover do not arm it. Session IDs remain independent.
+
+The pending indication waits for an eligible packet: data, or a control packet
+with no existing flags. Sending any number of beacons or SYN/SYN-ACK/ACK packets
+leaves it pending. No extra control or data packet is scheduled just to report a
+restart. Normal balloon startup begins with a data window, but flag ownership
+and eligibility do not depend on LinkManager's current phase.
+
+Busy, invalid and failed TX attempts retain the indication; a locally accepted
+eligible TX carries it, and a subsequent local TX failure/timeout rearms it.
+A new restart request during that TX remains pending for the next eligible
+packet. An incoming restart flag is never echoed into a control response or
+retransmission header. CRC covers the existing flags byte. LinkManager owns
+neither the flag state nor its clearing; its SYN/ACK rules remain unchanged.
+
+This is a one-packet indication, not an acknowledged restart notification. If
+the marked packet is lost, or the ground UI is not collecting events, the restart
+can be missed. A local TX failure after emitting a packet can also cause a repeat
+on a retry. The flag does not identify which MCU restarted or distinguish
+power-on, watchdog reset and deliberate reset.
+
+Packet sizes, field offsets, payload capacity, type bytes and protocol version
+remain unchanged. Both endpoints need updated firmware to interpret the restart
+flag. The split UART status response gains a trailing boolean for the last
+accepted TX's restart flag, which also advertises restart-command support.
+Updated RP2040 firmware accepts the old shorter UART status format and skips
+`MarkRestart` when the radio does not advertise support. Telemetry can therefore
+continue during an RP2040-only update, but restart flagging is unavailable until
+the LoRa firmware is updated too. `SPLIT_HOST restartFlagSupported=0` identifies
+this compatibility mode; the RP2040's pending indication is retained for a later
+connection to an upgraded radio.
+Ground activity reports the flag independently of sensor-message reassembly or
+link-handshake acceptance. It never labels beacons or SYN/SYN-ACK/ACK as restarted.
+
 ## Data packet
 
 | Offset | Field | Wire size |
@@ -24,7 +76,7 @@ array entries and native padding are never transmitted. Maximum packet size is
 | 6 | Fragment count (total fragments in message) | 2 bytes |
 | 8 | Fragment index (zero-based) | 2 bytes |
 | 10 | Retry count (0 for first attempt) | 1 byte |
-| 11 | Flags (data flag bits unassigned) | 1 byte |
+| 11 | Flags (bit 7: sender restarted) | 1 byte |
 | 12 | Payload length | 1 byte |
 | 13 | Payload | N bytes |
 | 13+N | CRC-16 | 2 bytes |
@@ -33,8 +85,8 @@ The 13-byte header and two-byte footer leave 240 payload bytes. The sender's
 session ID is its boot session: A-to-B packets carry A's session, B-to-A packets
 carry B's. Message IDs group fragments within that session. All 16-bit ID values
 are representable. MessageManager generates boot-session/message identities, advances the session
-on message-ID wrap and provides bounded stale/duplicate filtering. Retry overflow policy and data flag semantics are
-also pending; all data flag values are accepted structurally.
+on message-ID wrap and provides bounded stale/duplicate filtering. Retry overflow policy and the remaining data flag bits are
+unassigned; all data flag values are accepted structurally.
 
 `DataPacket` stores header, payload and CRC. `Packet` aliases DataPacket and
 `DataHeader` aliases Header. The message-size validator accepts 1..32784 bytes,
@@ -78,7 +130,9 @@ requested fragments are available. Real retention/replay storage is still pendin
 
 ### Conversation and fields during handshake
 
-`ControlFlag` values: None=0, SYN=1, ACK=2, SYN-ACK=3. SYN-ACK combines SYN and ACK
+Handshake `ControlFlag` values: None=0, SYN=1, ACK=2, SYN-ACK=3. The separate
+restart-only flag value is `0x80`, allowed only in an otherwise unflagged control
+packet; it is never combined with handshake markers. SYN-ACK combines SYN and ACK
 bits; these are this protocol's markers, not TCP's wire flags. Structural packet
 validation accepts the flag byte; LinkManager checks allowed stages and roles.
 

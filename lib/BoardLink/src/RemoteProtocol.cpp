@@ -16,8 +16,12 @@ void RemoteProtocol::frame(Kind kind,uint16_t id,uint32_t session,const uint8_t*
  if(kind==Kind::Reply || kind==Kind::State) {
   if(kind==Kind::Reply && (!waiting_ || id!=waitingId_)) { ++staleFrames;return; }
   Reader r(p,n);const uint8_t result=r.u8();const uint32_t stamp=r.u32();const auto state=radio::State(r.u8());const auto tx=radio::TxStatus(r.u8());radio::Config c;config(r,c);
-  if(!r.done() || uint8_t(state)>uint8_t(radio::State::Fault) || uint8_t(tx)>uint8_t(radio::TxStatus::Failed)) { ++badFrames;return; }
-  state_=state;tx_=tx;config_=c;
+  // Legacy radio firmware ends after config. The new trailing TX flag also
+  // advertises support for MarkRestart, allowing RP2040-only deployments.
+  const bool supportsRestart=r.ok && r.at<r.length;
+  const uint8_t restarted=supportsRestart ? r.u8() : 0;
+  if(!r.done() || restarted>1 || uint8_t(state)>uint8_t(radio::State::Fault) || uint8_t(tx)>uint8_t(radio::TxStatus::Failed)) { ++badFrames;return; }
+  state_=state;tx_=tx;config_=c;lastTxRestarted_=restarted!=0;restartSupported_=supportsRestart;
   if(kind==Kind::Reply) { result_=result;remoteStamp_=stamp;replied_=true; }
   return;
  }
@@ -54,7 +58,17 @@ bool RemoteProtocol::connect(uint32_t session) {
  connected_=false;session_=session ? session : 1;nextId_=0;eventSequence_=0;eventHead_=eventCount_=0;
  Writer w(scratch_);w.u8(uint8_t(Op::Hello));
  if(!request(w) || result_!=uint8_t(radio::Status::Ok)) return false;
- connected_=true;return true;
+ connected_=true;
+ if(restartPending_ && restartSupported_ && markRestart()!=radio::Status::Ok) { lost();return false; }
+ return true;
+}
+radio::Status RemoteProtocol::markRestart() {
+ restartPending_=true;
+ if(!connected_) return radio::Status::NotInitialized;
+ if(!restartSupported_) return radio::Status::InvalidPayload;
+ const auto result=simple(Op::MarkRestart);
+ if(result==radio::Status::Ok) restartPending_=false;
+ return result;
 }
 radio::Status RemoteProtocol::initialize(const radio::Config& c) {
  Writer w(scratch_);w.u8(uint8_t(Op::Initialize));config(w,c);
@@ -79,13 +93,13 @@ void RemoteProtocol::setDataWindow(uint32_t end) {
  Writer w(scratch_);w.u8(uint8_t(Op::Gate));w.u8(2);w.u32(end+offset_-clockUncertaintyMs);
  if(!request(w) || result_!=uint8_t(radio::Status::Ok)) lost();
 }
-void RemoteProtocol::notifyActivity(protocol::PacketType type,bool tx,uint32_t stamp,size_t length,uint8_t flags,const radio::PacketInfo* info) {
+void RemoteProtocol::notifyActivity(protocol::PacketType type,bool tx,uint32_t stamp,size_t length,uint8_t flags,const radio::PacketInfo* info,bool restarted) {
  if(!activity_) return;
  auto c=config_;
  if(info && info->hasModulation) {
   c.spreadingFactor=info->spreadingFactor;c.bandwidth=info->bandwidth;c.codingRate=info->codingRate;
  }
- PacketActivity a;a.type=type;a.transmitting=tx;a.flags=flags;
+ PacketActivity a;a.type=type;a.transmitting=tx;a.flags=flags;a.restarted=restarted;
  a.durationMs=radio::RadioManager::airtimeMs(c,length);
  a.startMs=tx ? stamp : stamp-a.durationMs;
  a.profile=modulation_profiles::identify(c.spreadingFactor,c.bandwidth,c.codingRate);
@@ -97,21 +111,21 @@ protocol::Result RemoteProtocol::sendData(const protocol::Header& h,const uint8_
  if(dispatching_) return protocol::Result::Busy;
  Writer w(scratch_);w.u8(uint8_t(Op::SendData));header(w,h);w.bytes(p,h.payloadLength);
  const auto result=request(w) ? protocol::Result(result_) : protocol::Result::HardwareError;
- if(result==protocol::Result::Ok) notifyActivity(protocol::PacketType::Data,true,remoteStamp_-offset_,protocol::packetSize(h.payloadLength),0);
+ if(result==protocol::Result::Ok) notifyActivity(protocol::PacketType::Data,true,remoteStamp_-offset_,protocol::packetSize(h.payloadLength),uint8_t((h.flags & ~protocol::RestartFlag) | (lastTxRestarted_ ? protocol::RestartFlag : 0)),nullptr,lastTxRestarted_);
  return result;
 }
 protocol::Result RemoteProtocol::sendControl(const protocol::ControlPacket& p,uint32_t) {
  if(!connected_) return protocol::Result::NotReady;
  if(!protocol::valid(p)) return protocol::Result::InvalidArgument;
  Writer w(scratch_);w.u8(uint8_t(Op::SendControl));control(w,p);const auto result=request(w) ? protocol::Result(result_) : protocol::Result::HardwareError;
- if(result==protocol::Result::Ok) notifyActivity(protocol::PacketType::Control,true,remoteStamp_-offset_,protocol::controlPacketSize(p.retransmitBitmapCount),p.flags);
+ if(result==protocol::Result::Ok) notifyActivity(protocol::PacketType::Control,true,remoteStamp_-offset_,protocol::controlPacketSize(p.retransmitBitmapCount),uint8_t((p.flags & ~protocol::RestartFlag) | (lastTxRestarted_ ? protocol::RestartFlag : 0)),nullptr,lastTxRestarted_);
  return result;
 }
 protocol::Result RemoteProtocol::sendBeacon(const protocol::BeaconPacket& p,uint32_t) {
  if(!connected_) return protocol::Result::NotReady;
  if(!protocol::valid(p)) return protocol::Result::InvalidArgument;
  Writer w(scratch_);w.u8(uint8_t(Op::SendBeacon));beacon(w,p);const auto result=request(w) ? protocol::Result(result_) : protocol::Result::HardwareError;
- if(result==protocol::Result::Ok) notifyActivity(protocol::PacketType::Beacon,true,remoteStamp_-offset_,protocol::BeaconPacketSize,0);
+ if(result==protocol::Result::Ok) notifyActivity(protocol::PacketType::Beacon,true,remoteStamp_-offset_,protocol::BeaconPacketSize,0,nullptr,lastTxRestarted_);
  return result;
 }
 #ifdef SPLIT_DIAGNOSTICS
@@ -135,12 +149,12 @@ void RemoteProtocol::dispatch(const Event& e) {
   // Classification belongs to the host's shared profile definitions.
   fragment_.profile=i.hasModulation ? modulation_profiles::identify(i.spreadingFactor,i.bandwidth,i.codingRate) : packet_statistics::UnknownProfile;
   memcpy(fragment_.rawBytes,r.data+r.at,i.length);
-  notifyActivity(protocol::PacketType::Data,false,i.receivedAtMs,i.length,0,&i);
+  notifyActivity(protocol::PacketType::Data,false,i.receivedAtMs,i.length,h.flags,&i,protocol::restartFlag(h.flags));
   if(data_) data_->onFragment(fragment_);
  } else if(e.kind==Kind::Control) {
-  protocol::ControlPacket p;control(r,p);if(r.done() && protocol::valid(p,i.length)) { notifyActivity(protocol::PacketType::Control,false,i.receivedAtMs,i.length,p.flags,&i);if(link_) link_->onControl(p,i); }else ++badFrames;
+  protocol::ControlPacket p;control(r,p);if(r.done() && protocol::valid(p,i.length)) { notifyActivity(protocol::PacketType::Control,false,i.receivedAtMs,i.length,p.flags,&i,p.flags==protocol::RestartFlag);if(link_) link_->onControl(p,i); }else ++badFrames;
  } else if(e.kind==Kind::Beacon) {
-  protocol::BeaconPacket p;beacon(r,p);if(r.done() && protocol::valid(p,i.length)) { notifyActivity(protocol::PacketType::Beacon,false,i.receivedAtMs,i.length,0,&i);if(link_) link_->onBeacon(p,i); }else ++badFrames;
+  protocol::BeaconPacket p;beacon(r,p);if(r.done() && protocol::valid(p,i.length)) { notifyActivity(protocol::PacketType::Beacon,false,i.receivedAtMs,i.length,0,&i,false);if(link_) link_->onBeacon(p,i); }else ++badFrames;
  }
 }
 void RemoteProtocol::poll() {

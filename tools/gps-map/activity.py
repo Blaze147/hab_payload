@@ -44,12 +44,18 @@ class ActivityLog:
                 if fields['type'] not in {'data', 'control', 'beacon'} or fields['direction'] not in {'rx', 'tx'}:
                     return False
                 flags = int(fields['flags'])
+                restarted = int(fields.get('restarted', '0'))
+                if restarted not in (0, 1):
+                    return False
                 if not 0 <= flags <= 255 or duration == 0 or duration > 120000:
                     return False
+                if restarted and not (fields['type'] == 'data' and flags & 128
+                                      or fields['type'] == 'control' and flags == 128):
+                    return False  # Beacons and SYN/SYN-ACK/ACK never carry it.
                 # RX is known only on completion; never invent an in-flight RX.
                 if fields['direction'] == 'rx' and delta + duration > 100:
                     return False
-                event.update(type=fields['type'], direction=fields['direction'], flags=flags)
+                event.update(type=fields['type'], direction=fields['direction'], flags=flags, restarted=bool(restarted))
             elif kind == 'window':
                 if fields['phase'] not in PHASES:
                     return False

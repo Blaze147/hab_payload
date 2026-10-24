@@ -87,6 +87,95 @@ struct ActivityCapture : ActivityReceiver {
  std::vector<PacketActivity> packets;
  void onPacketActivity(const PacketActivity& p) override { packets.push_back(p); }
 };
+void legacyRadioCompatibility() {
+ // Exercise real framed UART replies in the old format (no trailing flag),
+ // then the new format, without adding legacy behavior to production firmware.
+ struct Peer : Frames {
+  uint16_t id=0;uint32_t session=0;bool pending=false,extended=false;
+  unsigned marks=0,commands=0;Op op=Op::Hello;
+  explicit Peer(IO& io):Frames(io) {}
+  void frame(Kind kind,uint16_t nextId,uint32_t nextSession,const uint8_t* p,size_t n) override {
+   CHECK(kind==Kind::Command && n>0);id=nextId;session=nextSession;op=Op(p[0]);pending=true;
+  }
+  void poll() {
+   pump();if(!pending)return;
+   ++commands;
+   if(op==Op::MarkRestart) {CHECK(extended);++marks;}
+   uint8_t bytes[32];Writer w(bytes);w.u8(uint8_t(radio::Status::Ok));w.u32(io_.now());
+   w.u8(uint8_t(radio::State::Idle));w.u8(uint8_t(radio::TxStatus::None));config(w,radio::Config{});
+   if(extended)w.u8(0);
+   CHECK(send(Kind::Reply,id,session,bytes,w.length));pending=false;
+  }
+ };
+ World world;SerialIO host(world),radio(world);host.peer=&radio;radio.peer=&host;
+ StatisticsManager stats;RemoteProtocol remote(host,stats);Peer peer(radio);bool polling=false;
+ world.tasks.push_back([&] {
+  host.deliver();radio.deliver();remote.pump();
+  if(!polling) {polling=true;peer.poll();polling=false;}
+ });
+ CHECK(remote.connect(111));CHECK(!remote.restartFlagSupported());CHECK(peer.marks==0);
+ CHECK(remote.initialize(radio::Config{})==radio::Status::Ok);
+ CHECK(remote.receive()==radio::Status::Ok);CHECK(remote.connected());
+ const auto before=peer.commands;
+ CHECK(remote.markRestart()==radio::Status::InvalidPayload);CHECK(peer.commands==before);
+ CHECK(remote.connect(222));CHECK(!remote.restartFlagSupported());CHECK(peer.marks==0);
+ // The deferred RP2040 indication is forwarded when upgraded radio firmware
+ // later advertises support; reconnecting again does not falsely mark a boot.
+ peer.extended=true;CHECK(remote.connect(333));CHECK(remote.restartFlagSupported());CHECK(peer.marks==1);
+ CHECK(remote.connect(444));CHECK(peer.marks==1);
+ CHECK(remote.badFrames==0 && remote.timeouts==0);
+ printf("PASS: legacy radio status compatibility, no unsupported RPC, pending restart delivered after radio upgrade\n");
+}
+void restartIndications() {
+ World w;Device balloon(w),ground(w);balloon.begin(11);ground.begin(22);
+ auto c=radio::Config{};c.spreadingFactor=7;c.bandwidth=500000;c.codingRate=5;
+ CHECK(balloon.remote.configureRadio(c)==radio::Status::Ok);
+ CHECK(ground.remote.configureRadio(c)==radio::Status::Ok);
+ ActivityCapture received,sent;
+ ground.remote.setActivityReceiver(&received);balloon.remote.setActivityReceiver(&sent);
+ CHECK(ground.remote.receive()==radio::Status::Ok);
+ protocol::DataPacket data;data.header.payloadLength=1;data.payload[0]=42;
+ const auto send=[&](unsigned family,bool restarted,uint8_t flags=3) {
+  const size_t before=received.packets.size(),txBefore=sent.packets.size();
+  protocol::Result result;
+  if(family==0) result=balloon.remote.sendData(data,balloon.hostIO.now());
+  else if(family==1) result=balloon.remote.sendBeacon(protocol::BeaconPacket{},balloon.hostIO.now());
+  else { protocol::ControlPacket p;p.flags=flags;result=balloon.remote.sendControl(p,balloon.hostIO.now()); }
+  CHECK(result==protocol::Result::Ok);
+  CHECK(sent.packets.size()==txBefore+1 && sent.packets.back().restarted==restarted);
+  for(unsigned i=0;i<300;++i) { balloon.remote.poll();ground.remote.poll();w.advance(1); }
+  CHECK(received.packets.size()==before+1);
+  const auto& packet=received.packets.back();
+  CHECK(!packet.transmitting && packet.restarted==restarted);
+  CHECK(packet.type==protocol::PacketType(family));
+  if(family==2) CHECK(packet.flags==(restarted ? protocol::RestartFlag : flags));
+ };
+ // Simultaneous power-up coalesces into a single indication.
+ balloon.remote.allowDataTransmission(true);send(0,true);send(0,false);
+ // UART reconnection and radio reinitialization alone are not MCU restarts.
+ balloon.remote.disconnect();balloon.begin(33);
+ CHECK(balloon.remote.configureRadio(c)==radio::Status::Ok);
+ balloon.remote.allowDataTransmission(true);send(1,false);
+ // Reconstruct only the RP2040 client, leaving the radio processor alive.
+ balloon.remote.~RemoteProtocol();new(&balloon.remote) RemoteProtocol(balloon.hostIO,balloon.stats);
+ balloon.remote.setActivityReceiver(&sent);balloon.begin(44);
+ CHECK(balloon.remote.configureRadio(c)==radio::Status::Ok);
+ send(1,false);send(2,false,1);send(2,false,3);send(2,false,2);
+ balloon.remote.allowDataTransmission(true);send(0,true);send(0,false);
+ // Reconstruct only the radio processor, leaving the RP2040 client alive.
+ balloon.server.~RadioServer();balloon.radio.~RadioManager();
+ new(&balloon.radio) radio::RadioManager(balloon.adapter);
+ new(&balloon.server) RadioServer(balloon.radioIO,balloon.radio);balloon.server.begin();
+ balloon.begin(55);CHECK(balloon.remote.configureRadio(c)==radio::Status::Ok);
+ send(1,false);send(2,false,1);send(2,false,3);send(2,false,2);
+ send(2,true,0);send(2,false,0);
+ // The RP2040 can explicitly drive the same flag without a UART reconnect.
+ CHECK(balloon.remote.markRestart()==radio::Status::Ok);
+ balloon.remote.allowDataTransmission(true);send(0,true);send(0,false);
+ CHECK(balloon.remote.badFrames==0 && ground.remote.badFrames==0);
+ CHECK(balloon.remote.eventGaps==0 && ground.remote.eventGaps==0);
+ printf("PASS: independent RP2040/radio reboots set next eligible RF packet, skipping beacons and handshake flags; UART reconnect does not, RX/TX activity preserves flag\n");
+}
 void packetPipeline() {
  World w;Device a(w);a.begin();StatisticsManager::DenseStorage dense;a.stats.setDenseLogging(dense);ActivityCapture activity;a.remote.setActivityReceiver(&activity);Capture cap;a.remote.setDataReceiver(&cap);a.remote.setLinkReceiver(&cap);
  simulation::FakeRadioAdapter peerAdapter(w.rf);radio::RadioManager peerRadio(peerAdapter);StatisticsManager peerStats;ProtocolManager peer(peerRadio,peerStats);peer.begin();
@@ -218,4 +307,4 @@ void multipartMessage() {
  CHECK(a.hostIO.overrun==0 && b.hostIO.overrun==0 && a.radioIO.overrun==0 && b.radioIO.overrun==0);
  printf("PASS: 1000-byte MessageManager transfer through two RF/UART split devices, queued behind data gate\n");
 }
-int main() { multipartMessage();transportAndRadio();packetPipeline();diagnosticsAndRestart();acquisition();printf("PASS split: %u checks\n",checks); }
+int main() { legacyRadioCompatibility();restartIndications();multipartMessage();transportAndRadio();packetPipeline();diagnosticsAndRestart();acquisition();printf("PASS split: %u checks\n",checks); }

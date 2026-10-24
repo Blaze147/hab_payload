@@ -6,7 +6,7 @@ constexpr uint32_t Baud = 100000; // Exact at 8 MHz AVR; 115200 failed live UART
 constexpr size_t Capacity = 320;
 constexpr uint32_t CommandTimeout = 350, LeaseMs = 1500;
 enum class Kind : uint8_t { Command=1, Reply, Observation, Data, Control, Beacon, State, RadioError };
-enum class Op : uint8_t { Hello=1, Initialize, Status, Configure, Receive, Idle, Gate, SendData, SendControl, SendBeacon, Diagnostic };
+enum class Op : uint8_t { Hello=1, Initialize, Status, Configure, Receive, Idle, Gate, SendData, SendControl, SendBeacon, Diagnostic, MarkRestart };
 struct IO {
  virtual ~IO() = default;
  virtual int readByte() = 0;

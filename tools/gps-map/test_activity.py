@@ -18,6 +18,36 @@ class ActivityTests(unittest.TestCase):
         self.assertEqual(e['start'],99);self.assertEqual(e['duration'],1)
         self.assertEqual(e['direction'],'rx')
 
+    def test_restart_flag_is_independent_of_packet_type_and_handshake_flags(self):
+        for kind, flags in [('data', 128), ('control', 128)]:
+            log=ActivityLog()
+            self.assertTrue(log.feed(packet(type=kind,flags=flags,restarted=1),now=100))
+            event=log.snapshot(100)['events'][0]
+            self.assertTrue(event['restarted'])
+            self.assertEqual(event['flags'],flags)
+            self.assertTrue(log.feed(packet(seq=2,type=kind,flags=flags,restarted=0),now=101))
+            self.assertFalse(log.snapshot(101)['events'][-1]['restarted'])
+        # Historical log lines have no restart attribute and remain readable.
+        log=ActivityLog();log.feed(packet(),now=100)
+        self.assertFalse(log.snapshot(100)['events'][0]['restarted'])
+        for value in ('yes', '-1', '2'):
+            self.assertFalse(ActivityLog().feed(packet(restarted=value),now=100))
+        for kind, flags in [('beacon', 0), ('control', 1), ('control', 3), ('control', 2)]:
+            self.assertFalse(ActivityLog().feed(packet(type=kind,flags=flags,restarted=1),now=100))
+            log=ActivityLog();self.assertTrue(log.feed(packet(type=kind,flags=flags,restarted=0),now=100))
+            self.assertFalse(log.snapshot(100)['events'][0]['restarted'])
+
+    def test_restart_packet_reaches_api_without_a_sensor_message(self):
+        before=dict(server.state);old=server.activity
+        try:
+            server.activity=ActivityLog();server.state.update(source='ground',received_at=None)
+            server.consume_line(packet(type='control',flags=128,restarted=1))
+            payload=server.snapshot()
+            self.assertTrue(payload['activity']['events'][0]['restarted'])
+            self.assertIsNone(payload['received_at'])
+        finally:
+            server.state.clear();server.state.update(before);server.activity=old
+
     def test_long_packet_is_retained_while_any_part_is_visible(self):
         log=ActivityLog();log.feed(packet(ms=120000,start=0,duration=120000),now=120)
         self.assertEqual(len(log.snapshot(175)['events']),1)

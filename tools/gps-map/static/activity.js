@@ -36,7 +36,7 @@ class ActivityTimeline {
     const actor=e.direction==='tx'?'Ground → balloon':'Balloon → ground';
     const kind=e.type==='control'?({1:'SYN',2:'ACK',3:'SYN-ACK'}[e.flags]??'Control'):e.type==='beacon'?'Beacon':'Data';
     const duration=e.duration<1?`${Math.round(e.duration*1000)} ms`:`${e.duration.toFixed(2)} s`;
-    return `${actor} · ${kind} · ${e.profile} · ${duration}${e.direction==='tx'?' · sent locally; delivery unconfirmed':''}`;
+    return `${actor} · ${kind} · ${e.profile} · ${duration}${e.restarted?' · Sender restarted (RP2040 or radio)':''}${e.direction==='tx'?' · sent locally; delivery unconfirmed':''}`;
   }
   inspect(event) {
     const box=this.canvas.getBoundingClientRect(),x=event.clientX-box.left,y=event.clientY-box.top;
@@ -73,7 +73,7 @@ class ActivityTimeline {
       const right=Math.min(w,x(end));if(right<0 || left>w) continue;
       const width=Math.max(3,right-left),y=22;
       c.globalAlpha=Math.max(0,Math.min(1,(e.start+e.duration-(now-span))/6))*Math.min(1,Math.max(.15,(now-e.received_at)/.2));
-      c.fillStyle=colors[e.type]??'#8b989d';c.beginPath();c.roundRect(left,y,width,10,5);c.fill();
+      c.fillStyle=e.restarted?'#8b1e24':colors[e.type]??'#8b989d';c.beginPath();c.roundRect(left,y,width,10,5);c.fill();
       if(e.type==='control' && width>=15){
         c.font='bold 7px system-ui';c.textAlign='center';c.fillStyle='#fff';
         c.fillText(({1:'S',2:'A',3:'SA'}[e.flags]??'C'),left+width/2,y+7.5);c.textAlign='left';

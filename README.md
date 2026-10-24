@@ -34,6 +34,7 @@ excluded from those builds. Opt-in one-way builds: `transmitter_test` and
 - [Protocol Manager packet format and limits](docs/ProtocolManager.md)
 - [Public API, state rules and simulator](docs/RadioManager.md)
 - [Upload and physical test procedure](docs/HARDWARE_TESTING.md)
+- [USB unavailable, BOOTSEL upload recovery, and flight watchdog behavior](docs/USB_RECOVERY.md#troubleshooting-usb-unavailable-or-upload-cannot-enter-bootsel)
 - [Executed tests, memory usage and pending validation](docs/STAGE1_REPORT.md)
 
 Attach suitable antennas and establish permitted RF settings before hardware

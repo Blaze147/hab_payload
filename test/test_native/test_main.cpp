@@ -1095,12 +1095,13 @@ void integratedCounterTest() {
 }
 #include "MessageTests.h"
 #include "PressureTests.h"
+#include "RestartTests.h"
 #ifdef PIO_UNIT_TESTING
 #include <unity.h>
 void setUp() {}
 void tearDown() {}
 int main() {
- pressureTelemetryTests(); messageManagerTests(); UNITY_BEGIN(); RUN_TEST(telemetryWindowTest); RUN_TEST(integratedCounterTest); RUN_TEST(expiredAckDeadline); RUN_TEST(transactionValidation); RUN_TEST(outboundPackets); RUN_TEST(profileProbePolicy); RUN_TEST(beaconResynchronization); RUN_TEST(linkAcquisition); RUN_TEST(lostHandshake); RUN_TEST(retransmissionHandshake); RUN_TEST(linkClockAndBoundaries); RUN_TEST(signalMinimums); RUN_TEST(trailingStatistics); RUN_TEST(receiveStatistics); RUN_TEST(decodedFragments); RUN_TEST(managerConnections); RUN_TEST(protocolStructure); RUN_TEST(initialization); RUN_TEST(packets); RUN_TEST(bidirectional); RUN_TEST(profiles); RUN_TEST(errorsAndTiming); RUN_TEST(repeated); return UNITY_END(); }
+ restartPacketTests(); pressureTelemetryTests(); messageManagerTests(); UNITY_BEGIN(); RUN_TEST(telemetryWindowTest); RUN_TEST(integratedCounterTest); RUN_TEST(expiredAckDeadline); RUN_TEST(transactionValidation); RUN_TEST(outboundPackets); RUN_TEST(profileProbePolicy); RUN_TEST(beaconResynchronization); RUN_TEST(linkAcquisition); RUN_TEST(lostHandshake); RUN_TEST(retransmissionHandshake); RUN_TEST(linkClockAndBoundaries); RUN_TEST(signalMinimums); RUN_TEST(trailingStatistics); RUN_TEST(receiveStatistics); RUN_TEST(decodedFragments); RUN_TEST(managerConnections); RUN_TEST(protocolStructure); RUN_TEST(initialization); RUN_TEST(packets); RUN_TEST(bidirectional); RUN_TEST(profiles); RUN_TEST(errorsAndTiming); RUN_TEST(repeated); return UNITY_END(); }
 #else
-int main() { pressureTelemetryTests(); messageManagerTests(); telemetryWindowTest(); integratedCounterTest(); expiredAckDeadline(); transactionValidation(); outboundPackets(); profileProbePolicy(); beaconResynchronization(); linkAcquisition(); lostHandshake(); retransmissionHandshake(); linkClockAndBoundaries(); signalMinimums(); trailingStatistics(); receiveStatistics(); decodedFragments(); managerConnections(); protocolStructure(); initialization(); packets(); bidirectional(); profiles(); errorsAndTiming(); repeated(); printf("PASS: %u checks; 1000 alternating transmissions\n",checks); }
+int main() { restartPacketTests(); pressureTelemetryTests(); messageManagerTests(); telemetryWindowTest(); integratedCounterTest(); expiredAckDeadline(); transactionValidation(); outboundPackets(); profileProbePolicy(); beaconResynchronization(); linkAcquisition(); lostHandshake(); retransmissionHandshake(); linkClockAndBoundaries(); signalMinimums(); trailingStatistics(); receiveStatistics(); decodedFragments(); managerConnections(); protocolStructure(); initialization(); packets(); bidirectional(); profiles(); errorsAndTiming(); repeated(); printf("PASS: %u checks; 1000 alternating transmissions\n",checks); }
 #endif

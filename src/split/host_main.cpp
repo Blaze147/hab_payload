@@ -124,6 +124,7 @@ void report() {
  if(!endpoint_application::outputReady()) return;
  const auto s=statistics.snapshot();
  reportOutput.print("SPLIT_HOST connected=");reportOutput.print(packets.connected());reportOutput.print(" state=");reportOutput.print(uint8_t(packets.radioState()));
+ reportOutput.print(" restartFlagSupported=");reportOutput.print(packets.restartFlagSupported());
  reportOutput.print(" phase=");reportOutput.print(uint8_t(link.phase()));reportOutput.print(" established=");reportOutput.print(link.established());
  reportOutput.print(" conversation=");reportOutput.print(uint8_t(link.conversation()));
  reportOutput.print(" probing=");reportOutput.print(link.probing());
@@ -171,7 +172,7 @@ void report() {
 }
 #ifdef APPLICATION_WATCHDOG
 // Arduino calls this before USB initialization and before launching core 1.
-void initVariant() { application_watchdog::begin(status_led::bootloaderRecovery); }
+void initVariant() { application_watchdog::begin(); }
 #endif
 void setup() {
  status_led::begin();
@@ -240,14 +241,8 @@ void loop() {
 
 bool core1_separate_stack = true;
 void setup1() {
-#ifdef APPLICATION_WATCHDOG
- if(application_watchdog::recovering) return;
-#endif
  endpoint_application::beginCore1();
 }
 void loop1() {
-#ifdef APPLICATION_WATCHDOG
- if(application_watchdog::recovering) return;
-#endif
  endpoint_application::pollCore1(); delay(1);
 }

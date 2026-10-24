@@ -42,15 +42,6 @@ inline void begin() {
  activityMs=0;
  display(pixel.Color(24,24,24));
 }
-// Called on the watchdog-recovery boot, before USB/core 1 start. The WS2812
-// retains this solid purple indication while ROM BOOTSEL waits for an upload.
-inline void bootloaderRecovery() {
- pixel.begin();
- display(pixel.Color(40,0,40));
- // show() queues PIO output; finish the frame and LED latch before ROM resets
- // peripherals. No USB, sensor, or radio operation is needed here.
- busy_wait_us_32(400);
-}
 inline void poll(uint32_t now) {
  const uint32_t elapsed=now-startedAt;
  if(elapsed<2000) display(elapsed%400<200 ? pixel.Color(24,24,24):0);

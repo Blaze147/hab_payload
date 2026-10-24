@@ -5,6 +5,9 @@ public:
  ProtocolManager(radio::RadioManager& radio, packet_statistics::Sink& statistics)
   : radio_(radio), statistics_(statistics) {}
  void begin(); // Disconnect receivers; connect them after begin().
+ // Local MCU construction arms this automatically. A host MCU can also arm it.
+ void markRestart() { restartPending_=true; }
+ bool lastTransmissionRestarted() const { return lastTxRestarted_; }
  void setDataReceiver(protocol::DataReceiver* receiver) { dataReceiver_=receiver; }
  void setLinkReceiver(protocol::LinkReceiver* receiver) { linkReceiver_=receiver; }
  radio::Status poll(uint32_t nowMs);
@@ -36,6 +39,9 @@ private:
  protocol::LinkReceiver* linkReceiver_ = nullptr;
  bool callbackActive_ = false, dataAllowed_ = true, dataDeadline_ = false;
  uint32_t dataEndMs_ = 0;
+ bool restartPending_=true,restartInFlight_=false,lastTxRestarted_=false;
+ void settleRestart();
+ protocol::Result transmit(uint8_t*,size_t,uint32_t);
  protocol::Fragment fragment_; // Single reusable RX workspace, no queued copies.
  packet_statistics::Observation observation(const radio::PacketInfo&) const;
  protocol::Result deliverData(const protocol::Header&, const radio::PacketInfo&,

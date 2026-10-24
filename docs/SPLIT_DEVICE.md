@@ -27,6 +27,19 @@ Use compatible 3.3 V logic and short wiring. USB powers/programs each board;
 `Serial` is USB diagnostics and `Serial1` is the board-to-board connection.
 The firmware does not require a computer or an open USB serial monitor to run.
 
+Either MCU restarting arms a sender-restarted flag on the next eligible LoRa transmission
+(data, or control with no existing flags). Beacons and SYN/SYN-ACK/ACK stay
+unchanged and leave the indication pending.
+The LoRa ProtocolManager arms it at construction; the RP2040 RemoteProtocol sends
+a `MarkRestart` UART command once after its own construction, before allowing
+normal operation. A UART reconnection alone does not announce a reboot. See the
+[packet flag definition and delivery limits](ProtocolManager.md#sender-restarted-flag).
+The full extension needs updated LoRa and RP2040 images on both endpoints.
+RP2040-only updates remain compatible with the older radio firmware: the host
+accepts legacy UART status replies and omits the unsupported restart command.
+Telemetry continues, but restart flagging waits for the LoRa firmware update.
+The USB status field `restartFlagSupported=0` reports this mode.
+
 UART uses **100000 baud, 8N1** on both sides. This is an exact divisor of the
 8 MHz AVR clock and about 2.6 times the original 38400 setting. The standard
 115200 setting was tried on both physical boards but failed to establish a

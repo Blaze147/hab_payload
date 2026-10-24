@@ -15,7 +15,7 @@ constexpr size_t MessageIdOffset = 4; // uint16_t.
 constexpr size_t FragmentCountOffset = 6; // uint16_t, fragments in the message.
 constexpr size_t FragmentIndexOffset = 8; // uint16_t, zero-based.
 constexpr size_t RetryCountOffset = 10; // uint8_t, 0 for first attempt.
-constexpr size_t FlagsOffset = 11; // uint8_t, bits not assigned yet.
+constexpr size_t FlagsOffset = 11; // uint8_t; bit 7 is RestartFlag.
 constexpr size_t PayloadLengthOffset = 12; // uint8_t.
 constexpr size_t HeaderSize = 13;
 constexpr size_t PayloadOffset = HeaderSize;
@@ -39,6 +39,9 @@ constexpr uint16_t CrcCheck = 0x29B1;
 
 // All three packet families use version 1 and the same two-byte prefix.
 enum class PacketType : uint8_t { Data = 0, Beacon = 1, Control = 2 };
+// Bit 7 in existing data/control flags fields. Beacons have no flags field.
+constexpr uint8_t RestartFlag = 0x80;
+constexpr bool restartFlag(uint8_t flags) { return (flags & RestartFlag)!=0; }
 struct BeaconPacket {
  uint8_t version = Version;
  PacketType type = PacketType::Beacon;

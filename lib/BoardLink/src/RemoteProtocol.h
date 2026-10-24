@@ -5,7 +5,7 @@
 namespace board_link {
 struct PacketActivity {
  protocol::PacketType type=protocol::PacketType::Data;
- bool transmitting=false;
+ bool transmitting=false, restarted=false;
  uint32_t startMs=0, durationMs=0;
  uint8_t flags=0, profile=packet_statistics::UnknownProfile;
 };
@@ -21,6 +21,9 @@ class RemoteProtocol : public PacketService, public Frames {
 public:
  RemoteProtocol(IO& io,StatisticsManager& stats):Frames(io),stats_(stats) {}
  bool connect(uint32_t session);
+ // Construction queues one host restart indication. Explicit calls forward it
+ // immediately when connected, or retain it for the next connect() otherwise.
+ radio::Status markRestart();
  radio::Status initialize(const radio::Config&);
  void poll();
  void disconnect() { lost(); }
@@ -29,6 +32,7 @@ public:
 #endif
  void setActivityReceiver(ActivityReceiver* receiver) { activity_=receiver; }
  bool connected() const { return connected_; }
+ bool restartFlagSupported() const { return restartSupported_; }
  void setDataReceiver(protocol::DataReceiver* p) override { data_=p; }
  void setLinkReceiver(protocol::LinkReceiver* p) override { link_=p; }
  radio::Status receive() override;
@@ -51,10 +55,11 @@ public:
  uint32_t clockOffsetMs() const { return offset_; }
 private:
  ActivityReceiver* activity_=nullptr;
- void notifyActivity(protocol::PacketType,bool,uint32_t,size_t,uint8_t,const radio::PacketInfo* = nullptr);
+ void notifyActivity(protocol::PacketType,bool,uint32_t,size_t,uint8_t,const radio::PacketInfo* = nullptr,bool restarted=false);
  StatisticsManager& stats_;protocol::DataReceiver* data_=nullptr;protocol::LinkReceiver* link_=nullptr;
  radio::Config config_;radio::State state_=radio::State::Uninitialized;radio::TxStatus tx_=radio::TxStatus::None;
  uint32_t session_=0, offset_=0, lastSync_=0;uint16_t nextId_=0,waitingId_=0,eventSequence_=0;
+ bool restartPending_=true,lastTxRestarted_=false,restartSupported_=false;
  bool connected_=false,waiting_=false,replied_=false,dispatching_=false,aborted_=false;
  uint8_t result_=0;uint32_t remoteStamp_=0;
  struct Event { Kind kind;uint16_t length;uint8_t bytes[Capacity-12]; } events_[16];

@@ -1,0 +1,22 @@
+{
+  "prepared_at": "2026-10-24T05:17:17.795928+00:00",
+  "status": "both_rp2040_and_both_radio_boards_flashed",
+  "sha256": {
+    "balloon.elf": "8f693c412cc06646b377ce68e59ae9fd331d624b176a8faf6f2856cd98c683a4",
+    "balloon.uf2": "7b04cc51bbe74202648618292d7a871d8a91bd91d84b69da8115f051a808d1eb",
+    "ground.elf": "8db919b8da4a94d83d3d26956ffe837985904690c7de9e57792aa0be2c59554d",
+    "ground.uf2": "15511e5bc6c5f556abafddc322c0e777bf9c878e613a99c43c954ddb91c409ec",
+    "radio.hex": "722894892d6cf5971c5a7ad6468970ab2a11e0b4a88f8e31e5020a9d56178b08",
+    "radio.elf": "9d20e647acd7c4ca05ef9ac67bd19c7b5eaa247b357968178807d5c2c301f1ed"
+  },
+  "radio_firmware_update": "completed_at_user_request",
+  "flashed": {
+    "ground_rp2040": "503359276A727B9F",
+    "balloon_rp2040": "5303284748B66A1C",
+    "radio_usb_location_0-1.3": "split_radio",
+    "radio_usb_location_0-1.4": "split_radio"
+  },
+  "balloon_usb_reset": "1200-baud and picotool force did not expose BOOTSEL; RF was still running",
+  "radio_upload_completed_at": "2026-10-24T05:45:21.057730+00:00",
+  "radio_runtime_testing": "not_performed_at_user_request; upload flash verification only"
+}

@@ -141,6 +141,18 @@ LED updates run from the main loop without delay-based waits.
 The translucent strip above the map displays the last 60 seconds of ground-host
 events. Orange capsules are valid data packets, blue capsules are control packets
 (S = SYN, SA = SYN-ACK, A = ACK), and yellow capsules are acquisition beacons.
+Packets carrying the sender-restarted flag override those colors with dark red.
+Their tooltip adds “Sender restarted (RP2040 or radio)”; either board can drive
+the same flag. A cold power-on also sets it. Only the first eligible transmission
+is marked: data or control with no other flags. Beacons and SYN/SYN-ACK/ACK keep
+their normal colors and leave the restart indication pending. A lost marked
+packet can hide the indication. This is independent of the message
+session ID and does not imply a telemetry or link-handshake failure. Updated
+RP2040 and LoRa firmware are required on both endpoints for restart flagging.
+An updated RP2040 can still run telemetry with older LoRa firmware, but will
+report `restartFlagSupported=0` and cannot yet mark restart packets. See
+[the protocol definition](../../docs/ProtocolManager.md#sender-restarted-flag).
+
 All packets share one row; packet tooltips identify their direction. Gray
 vertical dividers mark observed link-window changes. Subtle moving ruler ticks
 keep time visibly progressing during radio silence or bridge disconnection.
